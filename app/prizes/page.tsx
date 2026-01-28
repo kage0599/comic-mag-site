@@ -1,75 +1,70 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Link from "next/link";
 import { usePrizes } from "../../components/usePrizes";
 import { useMagazines } from "../../components/useMagazines";
+import { clean, splitByComma } from "../../components/text";
+import { useAppliedPrizes } from "../../components/useAppliedPrizes";
 
-function clean(v: unknown) {
-  return String(v ?? "").trim();
+function toDateNum(v?: string) {
+  const s = clean(v).replace(/\//g, "-").slice(0, 10);
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : NaN;
 }
 
-function normalizeDate(d?: string) {
-  return clean(d).replace(/\//g, "-").slice(0, 10);
-}
-
-function toDateNum(d?: string) {
-  const s = normalizeDate(d);
-  if (!s) return NaN;
-  return new Date(s).getTime();
-}
-
-// ✅ 内容を A.,B.,C. みたいな区切りで改行
-function prettyLines(text?: string) {
-  const s = clean(text);
-  if (!s) return [];
-  // "A. ...、B. ...、C. ..." を改行
-  return s
-    .replace(/、\s*(?=[A-Z]\.)/g, "\n")
-    .split("\n")
-    .map((t) => t.trim())
-    .filter(Boolean);
-}
+type SortMode = "deadline" | "release";
 
 export default function PrizesPage() {
   const { items, loading, error } = usePrizes();
   const { items: mags } = useMagazines();
+  const applied = useAppliedPrizes();
 
   const [showExpired, setShowExpired] = useState(false);
-
+  const [sortMode, setSortMode] = useState<SortMode>("deadline");
   const now = Date.now();
 
-  const list = useMemo(() => {
-    const arr = [...items].sort((a, b) => (toDateNum(a.締切) ?? 0) - (toDateNum(b.締切) ?? 0));
+  const magById = useMemo(() => new Map(mags.map((m) => [clean(m.magazine_id), m])), [mags]);
 
-    const filtered = arr.filter((p) => {
+  const list = useMemo(() => {
+    let arr = [...items].filter((p) => {
+      if (showExpired) return true;
       const t = toDateNum(p.締切);
-      if (!Number.isFinite(t)) return true; // 日付不明は出す
-      return showExpired ? true : t >= now;
+      if (!Number.isFinite(t)) return true;
+      return t >= now;
     });
 
-    // magazine_id → 雑誌タイトルを付与
-    const map = new Map(mags.map((m) => [clean(m.magazine_id), clean(m.タイトル)]));
-    return filtered.map((p) => ({
-      ...p,
-      _magTitle: map.get(clean(p.magazine_id)) || "",
-    }));
-  }, [items, mags, showExpired, now]);
+    if (sortMode === "deadline") {
+      arr.sort((a, b) => (toDateNum(a.締切) || 9e15) - (toDateNum(b.締切) || 9e15));
+    } else {
+      arr.sort((a, b) => {
+        const ma = magById.get(clean(a.magazine_id));
+        const mb = magById.get(clean(b.magazine_id));
+        const ta = toDateNum(ma?.発売日) || 9e15;
+        const tb = toDateNum(mb?.発売日) || 9e15;
+        return ta - tb;
+      });
+    }
+    return arr;
+  }, [items, showExpired, now, sortMode, magById]);
 
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>懸賞情報</h1>
-              <div style={{ marginTop: 6, fontSize: 15, color: "#555", fontWeight: 700 }}>
-                応募締切が近い順に表示（内容は改行で見やすく）
-              </div>
-            </div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>懸賞情報</h1>
 
-            <button onClick={() => setShowExpired((v) => !v)} style={btnSoft}>
-              {showExpired ? "応募期間外を隠す" : "応募期間外も表示"}
-            </button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} style={select}>
+                <option value="deadline">締切が短い順</option>
+                <option value="release">発売日順</option>
+              </select>
+
+              <button onClick={() => setShowExpired((v) => !v)} style={btnSoft}>
+                {showExpired ? "応募期間外を隠す" : "応募期間外も表示"}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -83,46 +78,73 @@ export default function PrizesPage() {
           ) : (
             <div style={grid}>
               {list.map((p, idx) => {
-                const lines = prettyLines(p.内容);
+                const prizeId = clean(p.prize_id) || `${clean(p.magazine_id)}_${idx}`;
+                const mag = magById.get(clean(p.magazine_id));
+                const magTitle = clean(mag?.タイトル) || clean(p.magazine_id) || "（雑誌）";
+                const lines = splitByComma(p.内容);
+
+                const done = applied.has(prizeId);
+                const detailHref = mag?.magazine_id ? `/magazine/${encodeURIComponent(clean(mag.magazine_id))}` : "#";
+
                 return (
-                  <article key={`${p.prize_id || idx}`} style={card}>
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <div style={{ fontSize: 18, fontWeight: 900 }}>
-                        {clean(p.懸賞名) || "（懸賞名）"}
+                  <article key={prizeId} style={card}>
+                    <Link href={detailHref} style={{ textDecoration: "none", color: "inherit" }}>
+                      <span style={magLabel}>{magTitle}</span>
+                    </Link>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                      <div style={{ fontSize: 18, fontWeight: 900 }}>{clean(p.懸賞名) || "懸賞"}</div>
+
+                      <button
+                        onClick={() => applied.toggle(prizeId)}
+                        style={{
+                          ...statusBtn,
+                          background: done ? "#111" : "#fff",
+                          color: done ? "#fff" : "#111",
+                        }}
+                      >
+                        {done ? "応募済み" : "未応募"}
+                      </button>
+                    </div>
+
+                    <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.6 }}>
+                      <div><b>締切：</b>{clean(p.締切) || "—"}</div>
+                      <div><b>応募方法：</b>{clean(p.応募方法) || "—"}</div>
+                    </div>
+
+                    <details style={{ marginTop: 10 }}>
+                      <summary style={summary}>プレゼント内容を開く</summary>
+                      {lines.length ? (
+                        <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 16, lineHeight: 1.7 }}>
+                          {lines.map((t, i) => <li key={i}>{t}</li>)}
+                        </ul>
+                      ) : (
+                        <div style={{ marginTop: 8, fontSize: 16 }}>{clean(p.内容) || "—"}</div>
+                      )}
+                    </details>
+
+                    {/* ✅ 下段：左＝WEB応募 / 右＝販売サイトURL（右下） */}
+                    <div style={bottomRow}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {clean(p.応募URL) ? (
+                          <a href={clean(p.応募URL)} target="_blank" rel="noreferrer" style={btnSmall}>
+                            WEB応募
+                          </a>
+                        ) : null}
                       </div>
 
-                      {clean(p._magTitle) ? (
-                        <div style={{ fontSize: 14, color: "#555", fontWeight: 700 }}>
-                          掲載：{p._magTitle}
-                        </div>
-                      ) : null}
-
-                      <div style={{ fontSize: 16, fontWeight: 800 }}>
-                        締切：{clean(p.締切) || "—"}
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                        {clean(mag?.AmazonURL) ? (
+                          <a href={clean(mag.AmazonURL)} target="_blank" rel="noreferrer" style={btnMiniDark}>
+                            Amazon
+                          </a>
+                        ) : null}
+                        {clean(mag?.電子版URL) ? (
+                          <a href={clean(mag.電子版URL)} target="_blank" rel="noreferrer" style={btnMiniBlue}>
+                            電子版
+                          </a>
+                        ) : null}
                       </div>
-
-                      <div style={{ fontSize: 16 }}>
-                        応募方法：<b>{clean(p.応募方法) || "—"}</b>
-                      </div>
-
-                      <div style={{ marginTop: 6 }}>
-                        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 6 }}>内容</div>
-                        {lines.length ? (
-                          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, lineHeight: 1.6 }}>
-                            {lines.map((t, i) => (
-                              <li key={i}>{t}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div style={{ fontSize: 16, lineHeight: 1.6 }}>{clean(p.内容) || "—"}</div>
-                        )}
-                      </div>
-
-                      {clean(p.応募URL) ? (
-                        <a href={clean(p.応募URL)} target="_blank" rel="noreferrer" style={btnDark}>
-                          応募ページへ
-                        </a>
-                      ) : null}
                     </div>
                   </article>
                 );
@@ -140,6 +162,15 @@ const panel: React.CSSProperties = {
   borderRadius: 16,
   padding: 16,
   boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
+};
+
+const select: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontWeight: 900,
+  fontSize: 14,
 };
 
 const btnSoft: React.CSSProperties = {
@@ -162,20 +193,75 @@ const card: React.CSSProperties = {
   background: "#fff",
   borderRadius: 16,
   padding: 16,
-  boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
+  border: "1px solid #eee",
 };
 
-const btnDark: React.CSSProperties = {
+const magLabel: React.CSSProperties = {
   display: "inline-block",
-  marginTop: 8,
-  padding: "12px 14px",
-  borderRadius: 12,
+  marginBottom: 8,
+  padding: "6px 10px",
+  borderRadius: 999,
+  background: "#f1f3f6",
+  border: "1px solid #e3e6ee",
+  fontWeight: 900,
+  fontSize: 13,
+};
+
+const summary: React.CSSProperties = {
+  cursor: "pointer",
+  fontWeight: 900,
+  fontSize: 14,
+  color: "#111",
+};
+
+const bottomRow: React.CSSProperties = {
+  marginTop: 12,
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  alignItems: "flex-end",
+};
+
+const btnSmall: React.CSSProperties = {
+  display: "inline-block",
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  background: "#fff",
+  color: "#111",
+  textDecoration: "none",
+  fontSize: 12,
+  fontWeight: 900,
+};
+
+const btnMiniDark: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
   background: "#111",
   color: "#fff",
   textDecoration: "none",
-  fontSize: 16,
+  fontSize: 12,
   fontWeight: 900,
-  textAlign: "center",
+};
+
+const btnMiniBlue: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: "#2b6cff",
+  color: "#fff",
+  textDecoration: "none",
+  fontSize: 12,
+  fontWeight: 900,
+};
+
+const statusBtn: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: 999,
+  border: "1px solid #ddd",
+  cursor: "pointer",
+  fontWeight: 900,
+  fontSize: 13,
+  flexShrink: 0,
 };
 
 const errorBox: React.CSSProperties = {
