@@ -124,28 +124,39 @@ export default function PrizesPage() {
                     </details>
 
                     {/* ✅ 下段：左＝WEB応募 / 右＝販売サイトURL（右下） */}
-                    <div style={bottomRow}>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {clean(p.応募URL) ? (
-                          <a href={clean(p.応募URL)} target="_blank" rel="noreferrer" style={btnSmall}>
-                            WEB応募
-                          </a>
-                        ) : null}
-                      </div>
+                    {/* ✅ 下段：左＝WEB応募 / 右＝販売サイトURL（右下） */}
+<div style={bottomRow}>
+  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+    {clean(p.応募URL) ? (
+      <a href={clean(p.応募URL)} target="_blank" rel="noreferrer" style={btnSmall}>
+        WEB応募
+      </a>
+    ) : null}
+  </div>
 
-                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                        {clean(mag?.AmazonURL) ? (
-                          <a href={clean(mag.AmazonURL)} target="_blank" rel="noreferrer" style={btnMiniDark}>
-                            Amazon
-                          </a>
-                        ) : null}
-                        {clean(mag?.電子版URL) ? (
-                          <a href={clean(mag.電子版URL)} target="_blank" rel="noreferrer" style={btnMiniBlue}>
-                            電子版
-                          </a>
-                        ) : null}
-                      </div>
-                    </div>
+  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+    {(() => {
+      const amazonUrl = clean(mag?.AmazonURL);
+      const ebookUrl = clean((mag as any)?.電子版URL ?? (mag as any)?.電子版URL ?? (mag as any)?.電子版URL); // 念のため
+      // ↑ もし型が「電子版URL」じゃなく「電子版URL / 電子版URL」など揺れてたら後で1つに統一しよう
+
+      return (
+        <>
+          {amazonUrl ? (
+            <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
+              Amazon
+            </a>
+          ) : null}
+          {ebookUrl ? (
+            <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
+              電子版
+            </a>
+          ) : null}
+        </>
+      );
+    })()}
+  </div>
+</div>
                   </article>
                 );
               })}

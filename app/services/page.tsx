@@ -85,21 +85,31 @@ export default function ServicesPage() {
                     </div>
 
                     {/* ✅ 右下に販売サイトURL */}
-                    <div style={bottomRow}>
-                      <div /> {/* 左は空（将来ボタン置きたい場合用） */}
-                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                        {clean(mag?.AmazonURL) ? (
-                          <a href={clean(mag.AmazonURL)} target="_blank" rel="noreferrer" style={btnMiniDark}>
-                            Amazon
-                          </a>
-                        ) : null}
-                        {clean(mag?.電子版URL) ? (
-                          <a href={clean(mag.電子版URL)} target="_blank" rel="noreferrer" style={btnMiniBlue}>
-                            電子版
-                          </a>
-                        ) : null}
-                      </div>
-                    </div>
+<div style={bottomRow}>
+  <div /> {/* 左は空（将来ボタン置きたい場合用） */}
+  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+    {(() => {
+      const amazonUrl = clean(mag?.AmazonURL);
+      const ebookUrl = clean(mag?.電子版URL);
+
+      return (
+        <>
+          {amazonUrl ? (
+            <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
+              Amazon
+            </a>
+          ) : null}
+
+          {ebookUrl ? (
+            <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
+              電子版
+            </a>
+          ) : null}
+        </>
+      );
+    })()}
+  </div>
+</div>
                   </article>
                 );
               })}
