@@ -22,12 +22,20 @@ export default function ServicesPage() {
   const magById = useMemo(() => new Map(mags.map((m) => [clean(m.magazine_id), m])), [mags]);
 
   const list = useMemo(() => {
-    return items.filter((s) => {
+    // ✅ 「登録されていない」相当＝中身が空の行は出さない
+    let arr = [...items].filter((s) => {
+      const hasContent = !!clean(s.内容) || !!clean(s.応募方法) || !!clean(s.締切);
+      if (!hasContent) return false;
+
       if (showExpired) return true;
       const t = toDateNum(s.締切);
       if (!Number.isFinite(t)) return true;
       return t >= now;
     });
+
+    // 締切が近い順（見やすい）
+    arr.sort((a, b) => (toDateNum(a.締切) || 9e15) - (toDateNum(b.締切) || 9e15));
+    return arr;
   }, [items, showExpired, now]);
 
   return (
@@ -49,67 +57,74 @@ export default function ServicesPage() {
           ) : error ? (
             <div style={errorBox}>{error}</div>
           ) : list.length === 0 ? (
-            <div style={emptyBox}>表示する全プレがありません</div>
+            <div style={emptyBox}>表示する全員サービスがありません</div>
           ) : (
             <div style={grid}>
               {list.map((s, idx) => {
+                const serviceKey = clean(s.service_id) || `${clean(s.magazine_id)}_${idx}`;
+
                 const mag = magById.get(clean(s.magazine_id));
                 const magTitle = clean(mag?.タイトル) || clean(s.magazine_id) || "（雑誌）";
-                const detailHref = mag?.magazine_id ? `/magazine/${encodeURIComponent(clean(mag.magazine_id))}` : "#";
+
+                // ✅ Vercel落ち回避：magを直接参照しない
+                const amazonUrl = clean(mag?.AmazonURL);
+                const ebookUrl = clean(mag?.電子版URL);
+
+                const detailHref = clean(mag?.magazine_id)
+                  ? `/magazine/${encodeURIComponent(clean(mag?.magazine_id))}`
+                  : "#";
 
                 const lines = splitByComma(s.内容);
 
                 return (
-                  <article key={s.service_id ?? idx} style={card}>
+                  <article key={serviceKey} style={card}>
+                    {/* 雑誌名：目立たせる */}
                     <Link href={detailHref} style={{ textDecoration: "none", color: "inherit" }}>
-                      <div style={magLabel}>{magTitle}</div>
+                      <div style={magTitleBig}>{magTitle}</div>
                     </Link>
 
-                    {/* ✅ 内容を "、" で改行（箇条書き） */}
-                    {lines.length ? (
-                      <ul style={{ margin: "0 0 10px", paddingLeft: 18, fontSize: 16, lineHeight: 1.7, fontWeight: 800 }}>
-                        {lines.map((t, i) => <li key={i}>{t}</li>)}
-                      </ul>
-                    ) : (
-                      <div style={{ fontSize: 17, fontWeight: 900, lineHeight: 1.6 }}>
-                        {clean(s.内容) || "—"}
+                    {/* 締切/応募方法 */}
+                    <div style={{ marginTop: 8, fontSize: 16, lineHeight: 1.7 }}>
+                      <div>
+                        <b>締切：</b>
+                        {clean(s.締切) || "—"}
                       </div>
-                    )}
-
-                    <div style={{ marginTop: 8, fontSize: 15 }}>
-                      応募方法：<b>{clean(s.応募方法) || "—"}</b>
+                      <div>
+                        <b>応募方法：</b>
+                        {clean(s.応募方法) || "—"}
+                      </div>
                     </div>
 
-                    <div style={{ marginTop: 6, fontSize: 15, fontWeight: 900 }}>
-                      締切：{clean(s.締切) || "—"}
+                    {/* 内容：、で改行 */}
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>内容</div>
+                      {lines.length ? (
+                        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, lineHeight: 1.75 }}>
+                          {lines.map((t, i) => (
+                            <li key={i}>{t}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div style={{ fontSize: 16, lineHeight: 1.75 }}>{clean(s.内容) || "—"}</div>
+                      )}
                     </div>
 
-                    {/* ✅ 右下に販売サイトURL */}
-<div style={bottomRow}>
-  <div /> {/* 左は空（将来ボタン置きたい場合用） */}
-  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-    {(() => {
-      const amazonUrl = clean(mag?.AmazonURL);
-      const ebookUrl = clean(mag?.電子版URL);
-
-      return (
-        <>
-          {amazonUrl ? (
-            <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
-              Amazon
-            </a>
-          ) : null}
-
-          {ebookUrl ? (
-            <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
-              電子版
-            </a>
-          ) : null}
-        </>
-      );
-    })()}
-  </div>
-</div>
+                    {/* ✅ 右下に販売サイト（Amazon/電子版） */}
+                    <div style={bottomRow}>
+                      <div />
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                        {amazonUrl ? (
+                          <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
+                            Amazon
+                          </a>
+                        ) : null}
+                        {ebookUrl ? (
+                          <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
+                            電子版
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
                   </article>
                 );
               })}
@@ -121,6 +136,7 @@ export default function ServicesPage() {
   );
 }
 
+/** styles */
 const panel: React.CSSProperties = {
   background: "white",
   borderRadius: 16,
@@ -151,15 +167,14 @@ const card: React.CSSProperties = {
   border: "1px solid #eee",
 };
 
-const magLabel: React.CSSProperties = {
-  display: "inline-block",
-  marginBottom: 10,
-  padding: "6px 10px",
-  borderRadius: 999,
+const magTitleBig: React.CSSProperties = {
+  fontSize: 18,
+  fontWeight: 900,
+  lineHeight: 1.35,
+  padding: "8px 10px",
+  borderRadius: 12,
   background: "#f1f3f6",
   border: "1px solid #e3e6ee",
-  fontWeight: 900,
-  fontSize: 13,
 };
 
 const bottomRow: React.CSSProperties = {

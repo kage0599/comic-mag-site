@@ -79,12 +79,21 @@ export default function PrizesPage() {
             <div style={grid}>
               {list.map((p, idx) => {
                 const prizeId = clean(p.prize_id) || `${clean(p.magazine_id)}_${idx}`;
+
+                // ✅ magはundefinedの可能性があるので、以降は必ず ?. か、文字列に逃がす
                 const mag = magById.get(clean(p.magazine_id));
                 const magTitle = clean(mag?.タイトル) || clean(p.magazine_id) || "（雑誌）";
-                const lines = splitByComma(p.内容);
 
+                const lines = splitByComma(p.内容);
                 const done = applied.has(prizeId);
-                const detailHref = mag?.magazine_id ? `/magazine/${encodeURIComponent(clean(mag.magazine_id))}` : "#";
+
+                const detailHref = clean(mag?.magazine_id)
+                  ? `/magazine/${encodeURIComponent(clean(mag?.magazine_id))}`
+                  : "#";
+
+                // ✅ ここが今回のVercelエラー回避の肝：hrefに直mag参照しない
+                const amazonUrl = clean(mag?.AmazonURL);
+                const ebookUrl = clean(mag?.電子版URL);
 
                 return (
                   <article key={prizeId} style={card}>
@@ -108,55 +117,52 @@ export default function PrizesPage() {
                     </div>
 
                     <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.6 }}>
-                      <div><b>締切：</b>{clean(p.締切) || "—"}</div>
-                      <div><b>応募方法：</b>{clean(p.応募方法) || "—"}</div>
+                      <div>
+                        <b>締切：</b>
+                        {clean(p.締切) || "—"}
+                      </div>
+                      <div>
+                        <b>応募方法：</b>
+                        {clean(p.応募方法) || "—"}
+                      </div>
                     </div>
 
                     <details style={{ marginTop: 10 }}>
                       <summary style={summary}>プレゼント内容を開く</summary>
                       {lines.length ? (
                         <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 16, lineHeight: 1.7 }}>
-                          {lines.map((t, i) => <li key={i}>{t}</li>)}
+                          {lines.map((t, i) => (
+                            <li key={i}>{t}</li>
+                          ))}
                         </ul>
                       ) : (
                         <div style={{ marginTop: 8, fontSize: 16 }}>{clean(p.内容) || "—"}</div>
                       )}
                     </details>
 
-                    {/* ✅ 下段：左＝WEB応募 / 右＝販売サイトURL（右下） */}
-                    {/* ✅ 下段：左＝WEB応募 / 右＝販売サイトURL（右下） */}
-<div style={bottomRow}>
-  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-    {clean(p.応募URL) ? (
-      <a href={clean(p.応募URL)} target="_blank" rel="noreferrer" style={btnSmall}>
-        WEB応募
-      </a>
-    ) : null}
-  </div>
+                    {/* ✅ 下段：左＝WEB応募 / 右下＝販売サイト（Amazon/電子版） */}
+                    <div style={bottomRow}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {clean(p.応募URL) ? (
+                          <a href={clean(p.応募URL)} target="_blank" rel="noreferrer" style={btnSmall}>
+                            WEB応募
+                          </a>
+                        ) : null}
+                      </div>
 
-  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-    {(() => {
-      const amazonUrl = clean(mag?.AmazonURL);
-      const ebookUrl = clean((mag as any)?.電子版URL ?? (mag as any)?.電子版URL ?? (mag as any)?.電子版URL); // 念のため
-      // ↑ もし型が「電子版URL」じゃなく「電子版URL / 電子版URL」など揺れてたら後で1つに統一しよう
-
-      return (
-        <>
-          {amazonUrl ? (
-            <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
-              Amazon
-            </a>
-          ) : null}
-          {ebookUrl ? (
-            <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
-              電子版
-            </a>
-          ) : null}
-        </>
-      );
-    })()}
-  </div>
-</div>
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                        {amazonUrl ? (
+                          <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
+                            Amazon
+                          </a>
+                        ) : null}
+                        {ebookUrl ? (
+                          <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
+                            電子版
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
                   </article>
                 );
               })}
