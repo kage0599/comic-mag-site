@@ -12,6 +12,12 @@ function toDateNum(v?: string) {
   const t = Date.parse(s);
   return Number.isFinite(t) ? t : NaN;
 }
+function ymd(v?: string) {
+  return clean(v).replace(/\//g, "-").slice(0, 10);
+}
+function norm(s: string) {
+  return clean(s).toLowerCase();
+}
 
 type SortMode = "deadline" | "release";
 
@@ -22,16 +28,29 @@ export default function PrizesPage() {
 
   const [showExpired, setShowExpired] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("deadline");
+  const [q, setQ] = useState(""); // ✅ 検索
   const now = Date.now();
 
   const magById = useMemo(() => new Map(mags.map((m) => [clean(m.magazine_id), m])), [mags]);
 
   const list = useMemo(() => {
+    const keyword = norm(q);
+
     let arr = [...items].filter((p) => {
-      if (showExpired) return true;
-      const t = toDateNum(p.締切);
-      if (!Number.isFinite(t)) return true;
-      return t >= now;
+      // 応募期間外表示
+      if (!showExpired) {
+        const t = toDateNum(p.締切);
+        if (Number.isFinite(t) && t < now) return false;
+      }
+
+      // ✅ 検索（雑誌名＋懸賞名＋内容）
+      if (keyword) {
+        const mag = magById.get(clean(p.magazine_id));
+        const magTitle = clean(mag?.タイトル);
+        const hay = norm(`${magTitle} ${clean(p.懸賞名)} ${clean(p.内容)} ${clean(p.応募方法)}`);
+        return hay.includes(keyword);
+      }
+      return true;
     });
 
     if (sortMode === "deadline") {
@@ -46,14 +65,14 @@ export default function PrizesPage() {
       });
     }
     return arr;
-  }, [items, showExpired, now, sortMode, magById]);
+  }, [items, showExpired, now, sortMode, q, magById]);
 
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>懸賞情報</h1>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>懸賞一覧</h1>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} style={select}>
@@ -64,6 +83,20 @@ export default function PrizesPage() {
               <button onClick={() => setShowExpired((v) => !v)} style={btnSoft}>
                 {showExpired ? "応募期間外を隠す" : "応募期間外も表示"}
               </button>
+            </div>
+          </div>
+
+          {/* ✅ 検索 */}
+          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="検索：雑誌名 / 懸賞名 / プレゼント内容（Switch等）"
+              style={searchInput}
+            />
+            <button onClick={() => setQ("")} style={btnSoft}>クリア</button>
+            <div style={{ fontSize: 13, color: "#444", alignSelf: "center" }}>
+              件数：<b>{list.length}</b>
             </div>
           </div>
         </header>
@@ -79,19 +112,17 @@ export default function PrizesPage() {
             <div style={grid}>
               {list.map((p, idx) => {
                 const prizeId = clean(p.prize_id) || `${clean(p.magazine_id)}_${idx}`;
-
-                // ✅ magはundefinedの可能性があるので、以降は必ず ?. か、文字列に逃がす
                 const mag = magById.get(clean(p.magazine_id));
+
                 const magTitle = clean(mag?.タイトル) || clean(p.magazine_id) || "（雑誌）";
-
+                const release = ymd(mag?.発売日); // ✅ 発売日表示
                 const lines = splitByComma(p.内容);
-                const done = applied.has(prizeId);
 
+                const done = applied.has(prizeId);
                 const detailHref = clean(mag?.magazine_id)
                   ? `/magazine/${encodeURIComponent(clean(mag?.magazine_id))}`
                   : "#";
 
-                // ✅ ここが今回のVercelエラー回避の肝：hrefに直mag参照しない
                 const amazonUrl = clean(mag?.AmazonURL);
                 const ebookUrl = clean(mag?.電子版URL);
 
@@ -100,6 +131,9 @@ export default function PrizesPage() {
                     <Link href={detailHref} style={{ textDecoration: "none", color: "inherit" }}>
                       <span style={magLabel}>{magTitle}</span>
                     </Link>
+
+                    {/* ✅ 発売日を締切の上に */}
+                    {release ? <div style={releaseLine}>発売日：{release}</div> : null}
 
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
                       <div style={{ fontSize: 18, fontWeight: 900 }}>{clean(p.懸賞名) || "懸賞"}</div>
@@ -117,39 +151,24 @@ export default function PrizesPage() {
                     </div>
 
                     <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.6 }}>
-                      <div>
-                        <b>締切：</b>
-                        {clean(p.締切) || "—"}
-                      </div>
-                      <div>
-                        <b>応募方法：</b>
-                        {clean(p.応募方法) || "—"}
-                      </div>
+                      <div><b>締切：</b>{clean(p.締切) || "—"}</div>
+                      <div><b>応募方法：</b>{clean(p.応募方法) || "—"}</div>
                     </div>
 
                     <details style={{ marginTop: 10 }}>
                       <summary style={summary}>プレゼント内容を開く</summary>
                       {lines.length ? (
                         <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 16, lineHeight: 1.7 }}>
-                          {lines.map((t, i) => (
-                            <li key={i}>{t}</li>
-                          ))}
+                          {lines.map((t, i) => <li key={i}>{t}</li>)}
                         </ul>
                       ) : (
                         <div style={{ marginTop: 8, fontSize: 16 }}>{clean(p.内容) || "—"}</div>
                       )}
                     </details>
 
-                    {/* ✅ 下段：左＝WEB応募 / 右下＝販売サイト（Amazon/電子版） */}
+                    {/* ✅ 右下に販売サイトURL（Amazon/電子版） */}
                     <div style={bottomRow}>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {clean(p.応募URL) ? (
-                          <a href={clean(p.応募URL)} target="_blank" rel="noreferrer" style={btnSmall}>
-                            WEB応募
-                          </a>
-                        ) : null}
-                      </div>
-
+                      <div />
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
                         {amazonUrl ? (
                           <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
@@ -174,6 +193,7 @@ export default function PrizesPage() {
   );
 }
 
+/** styles */
 const panel: React.CSSProperties = {
   background: "white",
   borderRadius: 16,
@@ -197,6 +217,16 @@ const btnSoft: React.CSSProperties = {
   background: "#fff",
   cursor: "pointer",
   fontWeight: 900,
+  fontSize: 14,
+};
+
+const searchInput: React.CSSProperties = {
+  flex: 1,
+  minWidth: 260,
+  padding: "12px 12px",
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#fff",
   fontSize: 14,
 };
 
@@ -224,6 +254,14 @@ const magLabel: React.CSSProperties = {
   fontSize: 13,
 };
 
+const releaseLine: React.CSSProperties = {
+  marginTop: 2,
+  marginBottom: 6,
+  fontSize: 14,
+  fontWeight: 900,
+  color: "#111",
+};
+
 const summary: React.CSSProperties = {
   cursor: "pointer",
   fontWeight: 900,
@@ -237,18 +275,6 @@ const bottomRow: React.CSSProperties = {
   justifyContent: "space-between",
   gap: 10,
   alignItems: "flex-end",
-};
-
-const btnSmall: React.CSSProperties = {
-  display: "inline-block",
-  padding: "8px 10px",
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  background: "#fff",
-  color: "#111",
-  textDecoration: "none",
-  fontSize: 12,
-  fontWeight: 900,
 };
 
 const btnMiniDark: React.CSSProperties = {

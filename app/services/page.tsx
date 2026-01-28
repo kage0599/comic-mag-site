@@ -11,18 +11,23 @@ function toDateNum(v?: string) {
   const t = Date.parse(s);
   return Number.isFinite(t) ? t : NaN;
 }
+function ymd(v?: string) {
+  return clean(v).replace(/\//g, "-").slice(0, 10);
+}
+
+type SortMode = "deadline" | "release";
 
 export default function ServicesPage() {
   const { items, loading, error } = useServices();
   const { items: mags } = useMagazines();
 
   const [showExpired, setShowExpired] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("deadline");
   const now = Date.now();
 
   const magById = useMemo(() => new Map(mags.map((m) => [clean(m.magazine_id), m])), [mags]);
 
   const list = useMemo(() => {
-    // ✅ 「登録されていない」相当＝中身が空の行は出さない
     let arr = [...items].filter((s) => {
       const hasContent = !!clean(s.内容) || !!clean(s.応募方法) || !!clean(s.締切);
       if (!hasContent) return false;
@@ -33,21 +38,37 @@ export default function ServicesPage() {
       return t >= now;
     });
 
-    // 締切が近い順（見やすい）
-    arr.sort((a, b) => (toDateNum(a.締切) || 9e15) - (toDateNum(b.締切) || 9e15));
+    if (sortMode === "deadline") {
+      arr.sort((a, b) => (toDateNum(a.締切) || 9e15) - (toDateNum(b.締切) || 9e15));
+    } else {
+      arr.sort((a, b) => {
+        const ma = magById.get(clean(a.magazine_id));
+        const mb = magById.get(clean(b.magazine_id));
+        const ta = toDateNum(ma?.発売日) || 9e15;
+        const tb = toDateNum(mb?.発売日) || 9e15;
+        return ta - tb;
+      });
+    }
     return arr;
-  }, [items, showExpired, now]);
+  }, [items, showExpired, now, sortMode, magById]);
 
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>応募者全員サービス</h1>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>全プレ一覧</h1>
 
-            <button onClick={() => setShowExpired((v) => !v)} style={btnSoft}>
-              {showExpired ? "応募期間外を隠す" : "応募期間外も表示"}
-            </button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} style={select}>
+                <option value="deadline">締切が短い順</option>
+                <option value="release">発売日順</option>
+              </select>
+
+              <button onClick={() => setShowExpired((v) => !v)} style={btnSoft}>
+                {showExpired ? "応募期間外を隠す" : "応募期間外も表示"}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -66,7 +87,7 @@ export default function ServicesPage() {
                 const mag = magById.get(clean(s.magazine_id));
                 const magTitle = clean(mag?.タイトル) || clean(s.magazine_id) || "（雑誌）";
 
-                // ✅ Vercel落ち回避：magを直接参照しない
+                const release = ymd(mag?.発売日); // ✅ 発売日表示
                 const amazonUrl = clean(mag?.AmazonURL);
                 const ebookUrl = clean(mag?.電子版URL);
 
@@ -78,50 +99,36 @@ export default function ServicesPage() {
 
                 return (
                   <article key={serviceKey} style={card}>
-                    {/* 雑誌名：目立たせる */}
                     <Link href={detailHref} style={{ textDecoration: "none", color: "inherit" }}>
                       <div style={magTitleBig}>{magTitle}</div>
                     </Link>
 
-                    {/* 締切/応募方法 */}
-                    <div style={{ marginTop: 8, fontSize: 16, lineHeight: 1.7 }}>
-                      <div>
-                        <b>締切：</b>
-                        {clean(s.締切) || "—"}
-                      </div>
-                      <div>
-                        <b>応募方法：</b>
-                        {clean(s.応募方法) || "—"}
-                      </div>
+                    {release ? <div style={releaseLine}>発売日：{release}</div> : null}
+
+                    <div style={{ marginTop: 6, fontSize: 16, lineHeight: 1.7 }}>
+                      <div><b>締切：</b>{clean(s.締切) || "—"}</div>
+                      <div><b>応募方法：</b>{clean(s.応募方法) || "—"}</div>
                     </div>
 
-                    {/* 内容：、で改行 */}
                     <div style={{ marginTop: 10 }}>
                       <div style={{ fontWeight: 900, fontSize: 15, marginBottom: 6 }}>内容</div>
                       {lines.length ? (
                         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, lineHeight: 1.75 }}>
-                          {lines.map((t, i) => (
-                            <li key={i}>{t}</li>
-                          ))}
+                          {lines.map((t, i) => <li key={i}>{t}</li>)}
                         </ul>
                       ) : (
                         <div style={{ fontSize: 16, lineHeight: 1.75 }}>{clean(s.内容) || "—"}</div>
                       )}
                     </div>
 
-                    {/* ✅ 右下に販売サイト（Amazon/電子版） */}
                     <div style={bottomRow}>
                       <div />
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
                         {amazonUrl ? (
-                          <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
-                            Amazon
-                          </a>
+                          <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>Amazon</a>
                         ) : null}
                         {ebookUrl ? (
-                          <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
-                            電子版
-                          </a>
+                          <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>電子版</a>
                         ) : null}
                       </div>
                     </div>
@@ -142,6 +149,15 @@ const panel: React.CSSProperties = {
   borderRadius: 16,
   padding: 16,
   boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
+};
+
+const select: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontWeight: 900,
+  fontSize: 14,
 };
 
 const btnSoft: React.CSSProperties = {
@@ -175,6 +191,13 @@ const magTitleBig: React.CSSProperties = {
   borderRadius: 12,
   background: "#f1f3f6",
   border: "1px solid #e3e6ee",
+};
+
+const releaseLine: React.CSSProperties = {
+  marginTop: 8,
+  fontSize: 14,
+  fontWeight: 900,
+  color: "#111",
 };
 
 const bottomRow: React.CSSProperties = {
