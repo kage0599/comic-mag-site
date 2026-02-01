@@ -88,7 +88,7 @@ export default function TopTabs() {
         <Tab href="/services" label="全プレ一覧" />
 
         {/* ✅ 外部リンク（別サイト） */}
-        <External href={MANGA_SITE_URL} label="漫画発売日" />
+        <External href={MANGA_SITE_URL} label="漫画発売日一覧" />
       </div>
     </div>
   );
