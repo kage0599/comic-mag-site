@@ -2,131 +2,262 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import TopTabs from "../components/TopTabs";
 import { useMagazines } from "../components/useMagazines";
-import { clean, formatJpDate, isR18, normalizeDate } from "../components/text";
+import { clean } from "../components/text";
 
-function monthString(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
+/** ===== utils ===== */
+function toYmd(v?: string) {
+  const s = clean(v).replace(/\//g, "-").slice(0, 10);
+  return s; // "YYYY-MM-DD"
 }
 
+function toMonthKey(ymd: string) {
+  return ymd.slice(0, 7); // "YYYY-MM"
+}
+
+function toDateNum(v?: string) {
+  const s = toYmd(v);
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : NaN;
+}
+
+function formatMonthJp(monthKey: string) {
+  const [y, m] = monthKey.split("-").map((x) => Number(x));
+  if (!y || !m) return monthKey;
+  return `${y}年${m}月`;
+}
+
+function formatDateJp(ymd: string) {
+  const [y, m, d] = ymd.split("-").map((x) => Number(x));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  const w = ["日", "月", "火", "水", "木", "金", "土"][dt.getDay()];
+  return `${y}年${m}月${d}日（${w}）`;
+}
+
+/** ===== page ===== */
 export default function Page() {
-  const { items, loading, error } = useMagazines();
+  const { items: mags, loading, error } = useMagazines();
 
-  const [month, setMonth] = useState(monthString());
-  const [q, setQ] = useState("");
-
-  const monthItems = useMemo(() => {
-    const keyword = clean(q).toLowerCase();
-    return items.filter((m) => {
-      const d = normalizeDate(m.発売日);
-      if (!d.startsWith(month)) return false;
-      if (!keyword) return true;
-      const text = `${clean(m.タイトル)} ${clean(m.magazine_id)}`.toLowerCase();
-      return text.includes(keyword);
-    });
-  }, [items, month, q]);
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, typeof items>();
-    for (const it of monthItems) {
-      const key = normalizeDate(it.発売日) || "日付不明";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(it);
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of mags) {
+      const ymd = toYmd(m.発売日);
+      if (ymd) set.add(toMonthKey(ymd));
     }
-    const keys = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
-    return keys.map((k) => {
-      const list = map.get(k)!;
-      list.sort((a, b) => clean(a.タイトル).localeCompare(clean(b.タイトル), "ja"));
-      return { dateKey: k, list };
+    // 新しい月が先
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+  }, [mags]);
+
+  // デフォルト：一番新しい月（なければ当月）
+  const defaultMonth = useMemo(() => {
+    if (monthOptions.length) return monthOptions[0];
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+  }, [monthOptions]);
+
+  const [monthKey, setMonthKey] = useState<string>(defaultMonth);
+  const [q, setQ] = useState<string>("");
+  const [searchAllMonths, setSearchAllMonths] = useState<boolean>(false);
+
+  const filtered = useMemo(() => {
+    const keyword = clean(q).toLowerCase();
+
+    let base = mags;
+
+    // 月フィルター（全月検索OFFのとき）
+    if (!searchAllMonths) {
+      base = base.filter((m) => toMonthKey(toYmd(m.発売日)) === monthKey);
+    }
+
+    // 検索（タイトル/発売日）
+    if (keyword) {
+      base = base.filter((m) => {
+        const hay = `${clean(m.タイトル)} ${clean(m.発売日)}`.toLowerCase();
+        return hay.includes(keyword);
+      });
+    }
+
+    // 発売日昇順（同日内はタイトル）
+    return [...base].sort((a, b) => {
+      const ta = toDateNum(a.発売日);
+      const tb = toDateNum(b.発売日);
+      const na = Number.isFinite(ta) ? ta : 9e15;
+      const nb = Number.isFinite(tb) ? tb : 9e15;
+      if (na !== nb) return na - nb;
+      return clean(a.タイトル).localeCompare(clean(b.タイトル), "ja");
     });
-  }, [monthItems]);
+  }, [mags, q, monthKey, searchAllMonths]);
+
+  // 日付見出しで区切る（同じ日をまとめる）
+  const groupedByDate = useMemo(() => {
+    const map = new Map<string, typeof filtered>();
+    for (const m of filtered) {
+      const ymd = toYmd(m.発売日) || "発売日不明";
+      if (!map.has(ymd)) map.set(ymd, []);
+      map.get(ymd)!.push(m);
+    }
+    // 日付順
+    const keys = Array.from(map.keys()).sort((a, b) => {
+      const ta = Date.parse(a);
+      const tb = Date.parse(b);
+      const na = Number.isFinite(ta) ? ta : 9e15;
+      const nb = Number.isFinite(tb) ? tb : 9e15;
+      return na - nb;
+    });
+    return keys.map((k) => ({ dateKey: k, items: map.get(k)! }));
+  }, [filtered]);
+
+  // monthKey の初期値が defaultMonth とズレるのを防ぐ（monthOptionsが後から入るため）
+  // ※ここはユーザー操作を壊さないように「空のときだけ」補正
+  React.useEffect(() => {
+    if (!monthKey) setMonthKey(defaultMonth);
+  }, [defaultMonth, monthKey]);
 
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
+        {/* タブ */}
+        <div style={{ marginBottom: 12 }}>
+          <TopTabs />
+        </div>
+
+        {/* ヘッダー */}
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>コミック誌 情報まとめ</h1>
+              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900 }}>発売日一覧</h1>
+              <div style={{ marginTop: 6, color: "#555", fontWeight: 900 }}>
+                {clean(q)
+                  ? `検索結果：${searchAllMonths ? "全月" : formatMonthJp(monthKey)}`
+                  : `表示中：${formatMonthJp(monthKey)}`}
+              </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} style={monthInput} />
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <select value={monthKey} onChange={(e) => setMonthKey(e.target.value)} style={select}>
+                {monthOptions.map((k) => (
+                  <option key={k} value={k}>
+                    {formatMonthJp(k)}
+                  </option>
+                ))}
+              </select>
+
+              <label style={checkWrap}>
+                <input
+                  type="checkbox"
+                  checked={searchAllMonths}
+                  onChange={(e) => setSearchAllMonths(e.target.checked)}
+                />
+                全月検索
+              </label>
             </div>
           </div>
 
+          {/* 検索 */}
           <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="検索（タイトル / magazine_id）"
+              placeholder="検索：雑誌名（タイトル） / 日付（例 2026-01-05）"
               style={searchInput}
             />
-            <button onClick={() => setQ("")} style={btnSoft}>クリア</button>
+            <button onClick={() => setQ("")} style={btnSoft}>
+              クリア
+            </button>
             <div style={{ fontSize: 13, color: "#444" }}>
-              件数：<b>{monthItems.length}</b>
+              件数：<b>{filtered.length}</b>
             </div>
           </div>
         </header>
 
-        <section style={{ marginTop: 16 }}>
+        {/* 本文 */}
+        <section style={{ marginTop: 14 }}>
           {loading ? (
             <div style={{ padding: 18, color: "#555" }}>読み込み中...</div>
           ) : error ? (
             <div style={errorBox}>{error}</div>
-          ) : monthItems.length === 0 ? (
-            <div style={emptyBox}>この月のデータがありません</div>
+          ) : filtered.length === 0 ? (
+            <div style={emptyBox}>表示する雑誌がありません</div>
           ) : (
-            <div style={{ display: "grid", gap: 18 }}>
-              {grouped.map(({ dateKey, list }) => (
+            <div style={{ display: "grid", gap: 14 }}>
+              {groupedByDate.map(({ dateKey, items }) => (
                 <div key={dateKey}>
-                  <h2 style={dateHeading}>
-                    {dateKey === "日付不明" ? "日付不明" : formatJpDate(dateKey)}
-                  </h2>
+                  {/* ✅ 日付見出しを大きく */}
+                  <div style={dateHeading}>
+                    {dateKey === "発売日不明" ? "発売日不明" : formatDateJp(dateKey)}
+                  </div>
 
                   <div style={grid}>
-                    {list.map((m, i) => {
-                      const id = clean(m.magazine_id);
+                    {items.map((m, idx) => {
+                      const id = clean(m.magazine_id) || `${dateKey}_${idx}`;
                       const title = clean(m.タイトル) || "（タイトル不明）";
                       const img = clean(m.表紙画像);
-                      const r18 = isR18(m.R18);
-                      const href = id ? `/magazine/${encodeURIComponent(id)}` : "#";
+                      const isR18 = String((m as any).R18 ?? "").trim() === "1" || String((m as any).R18 ?? "").toLowerCase() === "true";
+
+                      // ✅ 雑誌クリックで詳細（→詳細から懸賞一覧も見れる想定）
+                      const href = clean(m.magazine_id)
+                        ? `/magazine/${encodeURIComponent(clean(m.magazine_id))}`
+                        : "#";
+
+                      const amazonUrl = clean(m.AmazonURL);
+                      const ebookUrl = clean(m.電子版URL);
 
                       return (
-                        <Link
-                          key={`${id}-${i}`}
-                          href={href}
-                          style={{ textDecoration: "none", color: "inherit", pointerEvents: id ? "auto" : "none" }}
-                        >
-                          <article style={card}>
-                            <div style={{ width: 110, flexShrink: 0 }}>
-                              {img ? (
-                                <img
-                                  src={img}
-                                  alt={title}
-                                  style={{ ...cover, filter: r18 ? "blur(10px)" : "none" }}
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <div style={coverFallback} />
-                              )}
-                            </div>
-
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={magTitle}>{title}</div>
-
-                              {/* ✅ id表示はしない */}
-                              <div style={meta}>
-                                <div>価格：{clean(m.値段) || "—"}</div>
-                                {r18 ? <div style={{ color: "#b00020", fontWeight: 900 }}>R18</div> : null}
+                        <article key={id} style={card}>
+                          <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
+                            <div style={{ display: "flex", gap: 12 }}>
+                              <div style={{ width: 120, flexShrink: 0 }}>
+                                {img ? (
+                                  <img
+                                    src={img}
+                                    alt={title}
+                                    loading="lazy"
+                                    style={{
+                                      ...cover,
+                                      filter: isR18 ? "blur(10px)" : "none",
+                                    }}
+                                  />
+                                ) : (
+                                  <div style={coverFallback} />
+                                )}
                               </div>
 
-                              <div style={smallHint}>タップで懸賞/全プレを確認</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={titleStyle}>{title}</div>
+
+                                {/* ✅ IDは表示しない */}
+                                <div style={meta}>
+                                  <div>値段：{clean(m.値段) || "—"}</div>
+                                </div>
+                              </div>
                             </div>
-                          </article>
-                        </Link>
+                          </Link>
+
+                          {/* ✅ 販売サイト（右下） */}
+                          <div
+                            style={{
+                              marginTop: 10,
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              gap: 8,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {amazonUrl ? (
+                              <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
+                                Amazon
+                              </a>
+                            ) : null}
+                            {ebookUrl ? (
+                              <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
+                                電子版
+                              </a>
+                            ) : null}
+                          </div>
+                        </article>
                       );
                     })}
                   </div>
@@ -140,6 +271,7 @@ export default function Page() {
   );
 }
 
+/** ===== styles ===== */
 const panel: React.CSSProperties = {
   background: "white",
   borderRadius: 16,
@@ -147,11 +279,36 @@ const panel: React.CSSProperties = {
   boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
 };
 
-const monthInput: React.CSSProperties = {
+const select: React.CSSProperties = {
   padding: "10px 12px",
   borderRadius: 10,
   border: "1px solid #ddd",
   background: "#fff",
+  fontWeight: 900,
+  fontSize: 14,
+};
+
+const checkWrap: React.CSSProperties = {
+  display: "inline-flex",
+  gap: 8,
+  alignItems: "center",
+  fontWeight: 900,
+  fontSize: 13,
+  color: "#111",
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  background: "#fff",
+};
+
+const searchInput: React.CSSProperties = {
+  flex: 1,
+  minWidth: 260,
+  padding: "12px 12px",
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontSize: 14,
 };
 
 const btnSoft: React.CSSProperties = {
@@ -161,30 +318,24 @@ const btnSoft: React.CSSProperties = {
   background: "#fff",
   cursor: "pointer",
   fontWeight: 900,
-  fontSize: 12,
-};
-
-const searchInput: React.CSSProperties = {
-  flex: 1,
-  minWidth: 240,
-  padding: "12px 12px",
-  borderRadius: 12,
-  border: "1px solid #ddd",
-  background: "#fff",
+  fontSize: 14,
 };
 
 const dateHeading: React.CSSProperties = {
-  margin: "14px 0 10px",
-  fontSize: 20,
+  marginTop: 6,
+  marginBottom: 10,
+  fontSize: 18, // ✅ 日付を大きく
   fontWeight: 900,
-  color: "#111",
-  paddingLeft: 12,
-  borderLeft: "6px solid #111",
+  padding: "10px 12px",
+  borderRadius: 14,
+  background: "#fff",
+  border: "1px solid #eee",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.04)",
 };
 
 const grid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
   gap: 14,
 };
 
@@ -193,8 +344,6 @@ const card: React.CSSProperties = {
   borderRadius: 16,
   padding: 14,
   border: "1px solid #eee",
-  display: "flex",
-  gap: 12,
 };
 
 const cover: React.CSSProperties = {
@@ -211,26 +360,41 @@ const coverFallback: React.CSSProperties = {
   borderRadius: 12,
 };
 
-const magTitle: React.CSSProperties = {
+const titleStyle: React.CSSProperties = {
   fontWeight: 900,
-  fontSize: 15,
+  fontSize: 16,
   lineHeight: 1.35,
+  // ✅ 省略しない（折り返し）
   whiteSpace: "normal",
   wordBreak: "break-word",
 };
 
 const meta: React.CSSProperties = {
   marginTop: 8,
-  fontSize: 12,
+  fontSize: 13,
   color: "#555",
   display: "grid",
   gap: 4,
 };
 
-const smallHint: React.CSSProperties = {
-  marginTop: 10,
+const btnMiniDark: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: "#111",
+  color: "#fff",
+  textDecoration: "none",
   fontSize: 12,
-  color: "#777",
+  fontWeight: 900,
+};
+
+const btnMiniBlue: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: "#2b6cff",
+  color: "#fff",
+  textDecoration: "none",
+  fontSize: 12,
+  fontWeight: 900,
 };
 
 const errorBox: React.CSSProperties = {
