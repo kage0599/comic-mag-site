@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
-        {/* ✅ AdSense 自動広告（head内・1回だけ） */}
+        {/* ✅ AdSense 自動広告コード（正しく反映される形） */}
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8658592043491821"
