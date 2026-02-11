@@ -8,8 +8,7 @@ import { clean } from "../components/text";
 
 /** ===== utils ===== */
 function toYmd(v?: string) {
-  const s = clean(v).replace(/\//g, "-").slice(0, 10);
-  return s; // "YYYY-MM-DD"
+  return clean(v).replace(/\//g, "-").slice(0, 10); // "YYYY-MM-DD"
 }
 function toMonthKey(ymd: string) {
   return ymd.slice(0, 7); // "YYYY-MM"
@@ -65,27 +64,24 @@ export default function Page() {
     return ymNowJst();
   }, [monthOptions]);
 
-  // 初期は当月、データが来たら「最新月」に寄せる（ユーザーが触ってない場合だけ）
+  // 初期は当月、データが来たら最新月へ（ユーザー操作が無い場合のみ）
   const [monthKey, setMonthKey] = useState<string>(ymNowJst());
   const touchedMonthRef = useRef(false);
 
   React.useEffect(() => {
-    // monthOptionsが入り、ユーザーが月を触っていなければ最新月へ
     if (!touchedMonthRef.current) {
       setMonthKey(defaultMonth);
       return;
     }
-    // 触っているが、その月が候補から消えたら最新月へ退避
     if (monthOptions.length && !monthOptions.includes(monthKey)) {
       setMonthKey(defaultMonth);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultMonth, monthOptions.length]);
 
-  const [q, setQ] = useState<string>("");
-  const [searchAllMonths, setSearchAllMonths] = useState<boolean>(false);
+  const [q, setQ] = useState("");
+  const [searchAllMonths, setSearchAllMonths] = useState(false);
 
-  // 今月/先月/来月ボタン用
   const canPrevNext = monthOptions.length > 0;
 
   const filtered = useMemo(() => {
@@ -93,12 +89,10 @@ export default function Page() {
 
     let base = mags;
 
-    // 月フィルター（全月検索OFFのとき）
     if (!searchAllMonths) {
       base = base.filter((m) => toMonthKey(toYmd(m.発売日)) === monthKey);
     }
 
-    // 検索（タイトル/発売日）
     if (keyword) {
       base = base.filter((m) => {
         const hay = `${clean(m.タイトル)} ${clean(m.発売日)}`.toLowerCase();
@@ -106,7 +100,6 @@ export default function Page() {
       });
     }
 
-    // 発売日昇順（同日内はタイトル）
     return [...base].sort((a, b) => {
       const ta = toDateNum(a.発売日);
       const tb = toDateNum(b.発売日);
@@ -117,7 +110,6 @@ export default function Page() {
     });
   }, [mags, q, monthKey, searchAllMonths]);
 
-  // 日付見出しで区切る（同じ日をまとめる）
   const groupedByDate = useMemo(() => {
     const map = new Map<string, typeof filtered>();
     for (const m of filtered) {
@@ -143,11 +135,14 @@ export default function Page() {
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
-        {/* タブ */}
+        {/* タブ（囲み＋余白） */}
+        <div style={tabsBox}>
+          <TopTabs />
+        </div>
 
         {/* ヘッダー */}
         <header style={panel}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: 14 }}>
             <div>
               <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900 }}>発売日一覧</h1>
               <div style={{ marginTop: 6, color: "#555", fontWeight: 900 }}>
@@ -157,43 +152,41 @@ export default function Page() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              {/* ✅ 今月/先月/来月ボタン */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-  <button
-    onClick={() => setMonthSafe(addMonths(monthKey, -1))}
-    style={btnSoft}
-    disabled={!canPrevNext}
-    title="先月"
-  >
-    ← 先月
-  </button>
+            {/* ✅ スマホ：全部横一列（はみ出しは横スクロール） */}
+            <div style={monthBar}>
+              <button
+                onClick={() => setMonthSafe(addMonths(monthKey, -1))}
+                style={btnSoftCompact}
+                disabled={!canPrevNext}
+                title="先月"
+              >
+                ←先月
+              </button>
 
-  <button
-    onClick={() => setMonthSafe(ymNowJst())}
-    style={btnSoft}
-    disabled={!canPrevNext}
-    title="今月"
-  >
-    今月
-  </button>
+              <button
+                onClick={() => setMonthSafe(ymNowJst())}
+                style={btnSoftCompact}
+                disabled={!canPrevNext}
+                title="今月"
+              >
+                今月
+              </button>
 
-  <button
-    onClick={() => setMonthSafe(addMonths(monthKey, 1))}
-    style={btnSoft}
-    disabled={!canPrevNext}
-    title="来月"
-  >
-    来月 →
-  </button>
-</div>
+              <button
+                onClick={() => setMonthSafe(addMonths(monthKey, 1))}
+                style={btnSoftCompact}
+                disabled={!canPrevNext}
+                title="来月"
+              >
+                来月→
+              </button>
 
-              {/* select */}
               <select
                 value={monthKey}
                 onChange={(e) => setMonthSafe(e.target.value)}
-                style={select}
+                style={selectCompact}
                 disabled={!monthOptions.length}
+                aria-label="月を選択"
               >
                 {monthOptions.length ? (
                   monthOptions.map((k) => (
@@ -206,7 +199,7 @@ export default function Page() {
                 )}
               </select>
 
-              <label style={checkWrap}>
+              <label style={checkWrapCompact} title="全月検索">
                 <input
                   type="checkbox"
                   checked={searchAllMonths}
@@ -215,21 +208,21 @@ export default function Page() {
                 全月検索
               </label>
             </div>
-          </div>
 
-          {/* 検索 */}
-          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="検索：雑誌名（タイトル） / 日付（例 2026-01-05）"
-              style={searchInput}
-            />
-            <button onClick={() => setQ("")} style={btnSoft}>
-              クリア
-            </button>
-            <div style={{ fontSize: 13, color: "#444" }}>
-              件数：<b>{filtered.length}</b>
+            {/* 検索 */}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="検索：雑誌名（タイトル） / 日付（例 2026-01-05）"
+                style={searchInput}
+              />
+              <button onClick={() => setQ("")} style={btnSoft}>
+                クリア
+              </button>
+              <div style={{ fontSize: 13, color: "#444" }}>
+                件数：<b>{filtered.length}</b>
+              </div>
             </div>
           </div>
         </header>
@@ -256,8 +249,8 @@ export default function Page() {
                       const title = clean(m.タイトル) || "（タイトル不明）";
                       const img = clean(m.表紙画像);
 
-                      const r18raw = String((m as any).R18 ?? "").trim();
-                      const isR18 = r18raw === "1" || r18raw.toLowerCase() === "true" || r18raw.toLowerCase() === "r18";
+                      const r18raw = String((m as any).R18 ?? "").trim().toLowerCase();
+                      const isR18 = r18raw === "1" || r18raw === "true" || r18raw === "r18";
 
                       const hasId = !!clean(m.magazine_id);
                       const href = hasId ? `/magazine/${encodeURIComponent(clean(m.magazine_id))}` : "";
@@ -282,7 +275,6 @@ export default function Page() {
 
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={titleStyle}>{title}</div>
-
                             <div style={meta}>
                               <div>値段：{clean(m.値段) || "—"}</div>
                             </div>
@@ -301,15 +293,7 @@ export default function Page() {
                           )}
 
                           {/* 販売サイト */}
-                          <div
-                            style={{
-                              marginTop: 10,
-                              display: "flex",
-                              justifyContent: "flex-end",
-                              gap: 8,
-                              flexWrap: "wrap",
-                            }}
-                          >
+                          <div style={buyRow}>
                             {amazonUrl ? (
                               <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
                                 Amazon
@@ -336,6 +320,15 @@ export default function Page() {
 }
 
 /** ===== styles ===== */
+const tabsBox: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #e9e9ee",
+  borderRadius: 16,
+  padding: 10,
+  boxShadow: "0 6px 18px rgba(0,0,0,0.04)",
+  marginBottom: 12,
+};
+
 const panel: React.CSSProperties = {
   background: "white",
   borderRadius: 16,
@@ -343,36 +336,14 @@ const panel: React.CSSProperties = {
   boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
 };
 
-const select: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  background: "#fff",
-  fontWeight: 900,
-  fontSize: 14,
-};
-
-const checkWrap: React.CSSProperties = {
-  display: "inline-flex",
+const monthBar: React.CSSProperties = {
+  display: "flex",
   gap: 8,
   alignItems: "center",
-  fontWeight: 900,
-  fontSize: 13,
-  color: "#111",
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  background: "#fff",
-};
-
-const searchInput: React.CSSProperties = {
-  flex: 1,
-  minWidth: 260,
-  padding: "12px 12px",
-  borderRadius: 12,
-  border: "1px solid #ddd",
-  background: "#fff",
-  fontSize: 14,
+  flexWrap: "nowrap",
+  overflowX: "auto",
+  WebkitOverflowScrolling: "touch",
+  paddingBottom: 4,
 };
 
 const btnSoft: React.CSSProperties = {
@@ -382,6 +353,54 @@ const btnSoft: React.CSSProperties = {
   background: "#fff",
   cursor: "pointer",
   fontWeight: 900,
+  fontSize: 14,
+};
+
+const btnSoftCompact: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  background: "#fff",
+  cursor: "pointer",
+  fontWeight: 900,
+  fontSize: 13,
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+};
+
+const selectCompact: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontWeight: 900,
+  fontSize: 13,
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+};
+
+const checkWrapCompact: React.CSSProperties = {
+  display: "inline-flex",
+  gap: 6,
+  alignItems: "center",
+  fontWeight: 900,
+  fontSize: 13,
+  color: "#111",
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  background: "#fff",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+};
+
+const searchInput: React.CSSProperties = {
+  flex: 1,
+  minWidth: 260,
+  padding: "12px 12px",
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#fff",
   fontSize: 14,
 };
 
@@ -438,6 +457,14 @@ const meta: React.CSSProperties = {
   color: "#555",
   display: "grid",
   gap: 4,
+};
+
+const buyRow: React.CSSProperties = {
+  marginTop: 10,
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 8,
+  flexWrap: "wrap",
 };
 
 const btnMiniDark: React.CSSProperties = {
