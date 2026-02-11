@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import TopTabs from "../components/TopTabs";
 import { useMagazines } from "../components/useMagazines";
@@ -11,56 +11,82 @@ function toYmd(v?: string) {
   const s = clean(v).replace(/\//g, "-").slice(0, 10);
   return s; // "YYYY-MM-DD"
 }
-
 function toMonthKey(ymd: string) {
   return ymd.slice(0, 7); // "YYYY-MM"
 }
-
 function toDateNum(v?: string) {
   const s = toYmd(v);
   const t = Date.parse(s);
   return Number.isFinite(t) ? t : NaN;
 }
-
 function formatMonthJp(monthKey: string) {
   const [y, m] = monthKey.split("-").map((x) => Number(x));
   if (!y || !m) return monthKey;
   return `${y}年${m}月`;
 }
-
 function formatDateJp(ymd: string) {
   const [y, m, d] = ymd.split("-").map((x) => Number(x));
   const dt = new Date(y, (m || 1) - 1, d || 1);
   const w = ["日", "月", "火", "水", "木", "金", "土"][dt.getDay()];
   return `${y}年${m}月${d}日（${w}）`;
 }
+function ymNowJst() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+function addMonths(ym: string, diff: number) {
+  const [y, m] = ym.split("-").map((v) => Number(v));
+  const dt = new Date(y, (m || 1) - 1, 1);
+  dt.setMonth(dt.getMonth() + diff);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  return `${yy}-${mm}`;
+}
 
 /** ===== page ===== */
 export default function Page() {
   const { items: mags, loading, error } = useMagazines();
 
+  // 月候補（新しい月が先）
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
     for (const m of mags) {
       const ymd = toYmd(m.発売日);
       if (ymd) set.add(toMonthKey(ymd));
     }
-    // 新しい月が先
     return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
   }, [mags]);
 
-  // デフォルト：一番新しい月（なければ当月）
+  // デフォルト：最新月（なければ当月）
   const defaultMonth = useMemo(() => {
     if (monthOptions.length) return monthOptions[0];
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    return `${y}-${m}`;
+    return ymNowJst();
   }, [monthOptions]);
 
-  const [monthKey, setMonthKey] = useState<string>(defaultMonth);
+  // 初期は当月、データが来たら「最新月」に寄せる（ユーザーが触ってない場合だけ）
+  const [monthKey, setMonthKey] = useState<string>(ymNowJst());
+  const touchedMonthRef = useRef(false);
+
+  React.useEffect(() => {
+    // monthOptionsが入り、ユーザーが月を触っていなければ最新月へ
+    if (!touchedMonthRef.current) {
+      setMonthKey(defaultMonth);
+      return;
+    }
+    // 触っているが、その月が候補から消えたら最新月へ退避
+    if (monthOptions.length && !monthOptions.includes(monthKey)) {
+      setMonthKey(defaultMonth);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultMonth, monthOptions.length]);
+
   const [q, setQ] = useState<string>("");
   const [searchAllMonths, setSearchAllMonths] = useState<boolean>(false);
+
+  // 今月/先月/来月ボタン用
+  const canPrevNext = monthOptions.length > 0;
 
   const filtered = useMemo(() => {
     const keyword = clean(q).toLowerCase();
@@ -99,7 +125,6 @@ export default function Page() {
       if (!map.has(ymd)) map.set(ymd, []);
       map.get(ymd)!.push(m);
     }
-    // 日付順
     const keys = Array.from(map.keys()).sort((a, b) => {
       const ta = Date.parse(a);
       const tb = Date.parse(b);
@@ -110,11 +135,10 @@ export default function Page() {
     return keys.map((k) => ({ dateKey: k, items: map.get(k)! }));
   }, [filtered]);
 
-  // monthKey の初期値が defaultMonth とズレるのを防ぐ（monthOptionsが後から入るため）
-  // ※ここはユーザー操作を壊さないように「空のときだけ」補正
-  React.useEffect(() => {
-    if (!monthKey) setMonthKey(defaultMonth);
-  }, [defaultMonth, monthKey]);
+  function setMonthSafe(next: string) {
+    touchedMonthRef.current = true;
+    setMonthKey(next);
+  }
 
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
@@ -137,12 +161,50 @@ export default function Page() {
             </div>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <select value={monthKey} onChange={(e) => setMonthKey(e.target.value)} style={select}>
-                {monthOptions.map((k) => (
-                  <option key={k} value={k}>
-                    {formatMonthJp(k)}
-                  </option>
-                ))}
+              {/* ✅ 今月/先月/来月ボタン */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <button
+                  onClick={() => setMonthSafe(ymNowJst())}
+                  style={btnSoft}
+                  disabled={!canPrevNext}
+                  title="今月"
+                >
+                  今月
+                </button>
+                <button
+                  onClick={() => setMonthSafe(addMonths(monthKey, -1))}
+                  style={btnSoft}
+                  disabled={!canPrevNext}
+                  title="先月"
+                >
+                  ← 先月
+                </button>
+                <button
+                  onClick={() => setMonthSafe(addMonths(monthKey, 1))}
+                  style={btnSoft}
+                  disabled={!canPrevNext}
+                  title="来月"
+                >
+                  来月 →
+                </button>
+              </div>
+
+              {/* select */}
+              <select
+                value={monthKey}
+                onChange={(e) => setMonthSafe(e.target.value)}
+                style={select}
+                disabled={!monthOptions.length}
+              >
+                {monthOptions.length ? (
+                  monthOptions.map((k) => (
+                    <option key={k} value={k}>
+                      {formatMonthJp(k)}
+                    </option>
+                  ))
+                ) : (
+                  <option value={monthKey}>{formatMonthJp(monthKey)}</option>
+                )}
               </select>
 
               <label style={checkWrap}>
@@ -185,7 +247,6 @@ export default function Page() {
             <div style={{ display: "grid", gap: 14 }}>
               {groupedByDate.map(({ dateKey, items }) => (
                 <div key={dateKey}>
-                  {/* ✅ 日付見出しを大きく */}
                   <div style={dateHeading}>
                     {dateKey === "発売日不明" ? "発売日不明" : formatDateJp(dateKey)}
                   </div>
@@ -195,48 +256,52 @@ export default function Page() {
                       const id = clean(m.magazine_id) || `${dateKey}_${idx}`;
                       const title = clean(m.タイトル) || "（タイトル不明）";
                       const img = clean(m.表紙画像);
-                      const isR18 = String((m as any).R18 ?? "").trim() === "1" || String((m as any).R18 ?? "").toLowerCase() === "true";
 
-                      // ✅ 雑誌クリックで詳細（→詳細から懸賞一覧も見れる想定）
-                      const href = clean(m.magazine_id)
-                        ? `/magazine/${encodeURIComponent(clean(m.magazine_id))}`
-                        : "#";
+                      const r18raw = String((m as any).R18 ?? "").trim();
+                      const isR18 = r18raw === "1" || r18raw.toLowerCase() === "true" || r18raw.toLowerCase() === "r18";
+
+                      const hasId = !!clean(m.magazine_id);
+                      const href = hasId ? `/magazine/${encodeURIComponent(clean(m.magazine_id))}` : "";
 
                       const amazonUrl = clean(m.AmazonURL);
                       const ebookUrl = clean(m.電子版URL);
 
+                      const CardInner = (
+                        <div style={{ display: "flex", gap: 12 }}>
+                          <div style={{ width: 120, flexShrink: 0 }}>
+                            {img ? (
+                              <img
+                                src={img}
+                                alt={title}
+                                loading="lazy"
+                                style={{ ...cover, filter: isR18 ? "blur(10px)" : "none" }}
+                              />
+                            ) : (
+                              <div style={coverFallback} />
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={titleStyle}>{title}</div>
+
+                            <div style={meta}>
+                              <div>値段：{clean(m.値段) || "—"}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+
                       return (
                         <article key={id} style={card}>
-                          <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
-                            <div style={{ display: "flex", gap: 12 }}>
-                              <div style={{ width: 120, flexShrink: 0 }}>
-                                {img ? (
-                                  <img
-                                    src={img}
-                                    alt={title}
-                                    loading="lazy"
-                                    style={{
-                                      ...cover,
-                                      filter: isR18 ? "blur(10px)" : "none",
-                                    }}
-                                  />
-                                ) : (
-                                  <div style={coverFallback} />
-                                )}
-                              </div>
+                          {hasId ? (
+                            <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
+                              {CardInner}
+                            </Link>
+                          ) : (
+                            <div>{CardInner}</div>
+                          )}
 
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={titleStyle}>{title}</div>
-
-                                {/* ✅ IDは表示しない */}
-                                <div style={meta}>
-                                  <div>値段：{clean(m.値段) || "—"}</div>
-                                </div>
-                              </div>
-                            </div>
-                          </Link>
-
-                          {/* ✅ 販売サイト（右下） */}
+                          {/* 販売サイト */}
                           <div
                             style={{
                               marginTop: 10,
@@ -324,7 +389,7 @@ const btnSoft: React.CSSProperties = {
 const dateHeading: React.CSSProperties = {
   marginTop: 6,
   marginBottom: 10,
-  fontSize: 18, // ✅ 日付を大きく
+  fontSize: 18,
   fontWeight: 900,
   padding: "10px 12px",
   borderRadius: 14,
@@ -364,7 +429,6 @@ const titleStyle: React.CSSProperties = {
   fontWeight: 900,
   fontSize: 16,
   lineHeight: 1.35,
-  // ✅ 省略しない（折り返し）
   whiteSpace: "normal",
   wordBreak: "break-word",
 };

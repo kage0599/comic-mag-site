@@ -1,11 +1,14 @@
+// app/prizes/page.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePrizes } from "../../components/usePrizes";
-import { useMagazines } from "../../components/useMagazines";
-import { clean, splitByComma } from "../../components/text";
-import { useAppliedPrizes } from "../../components/useAppliedPrizes";
+
+import TopTabs from "@/components/TopTabs";
+import { usePrizes, type Prize } from "@/components/usePrizes";
+import { useMagazines, type Magazine } from "@/components/useMagazines";
+import { clean, splitByComma } from "@/components/text";
+import { useAppliedPrizes } from "@/components/useAppliedPrizes";
 
 function toDateNum(v?: string) {
   const s = clean(v).replace(/\//g, "-").slice(0, 10);
@@ -28,34 +31,41 @@ export default function PrizesPage() {
 
   const [showExpired, setShowExpired] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("deadline");
-  const [q, setQ] = useState(""); // ✅ 検索
+  const [q, setQ] = useState("");
+
   const now = Date.now();
 
-  const magById = useMemo(() => new Map(mags.map((m) => [clean(m.magazine_id), m])), [mags]);
+  const magById = useMemo(() => {
+    return new Map<string, Magazine>(mags.map((m) => [clean(m.magazine_id), m]));
+  }, [mags]);
 
   const list = useMemo(() => {
     const keyword = norm(q);
 
-    let arr = [...items].filter((p) => {
-      // 応募期間外表示
+    let arr = [...items].filter((p: Prize) => {
+      // 応募期間外を除外（OFF時）
       if (!showExpired) {
         const t = toDateNum(p.締切);
         if (Number.isFinite(t) && t < now) return false;
       }
 
-      // ✅ 検索（雑誌名＋懸賞名＋内容）
+      // 検索（雑誌名＋懸賞名＋内容＋応募方法＋締切）
       if (keyword) {
         const mag = magById.get(clean(p.magazine_id));
         const magTitle = clean(mag?.タイトル);
-        const hay = norm(`${magTitle} ${clean(p.懸賞名)} ${clean(p.内容)} ${clean(p.応募方法)}`);
+        const hay = norm(
+          `${magTitle} ${clean(p.懸賞名)} ${clean(p.内容)} ${clean(p.応募方法)} ${clean(p.締切)}`
+        );
         return hay.includes(keyword);
       }
       return true;
     });
 
     if (sortMode === "deadline") {
+      // 締切が近い順（読めないのは最後）
       arr.sort((a, b) => (toDateNum(a.締切) || 9e15) - (toDateNum(b.締切) || 9e15));
     } else {
+      // 発売日順（読めないのは最後）
       arr.sort((a, b) => {
         const ma = magById.get(clean(a.magazine_id));
         const mb = magById.get(clean(b.magazine_id));
@@ -64,17 +74,28 @@ export default function PrizesPage() {
         return ta - tb;
       });
     }
+
     return arr;
   }, [items, showExpired, now, sortMode, q, magById]);
 
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
+        {/* ✅ タブ */}
+        <div style={{ marginBottom: 12 }}>
+          <TopTabs />
+        </div>
+
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>懸賞一覧</h1>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>懸賞一覧</h1>
+              <div style={{ marginTop: 6, fontSize: 13, color: "#555" }}>
+                件数：<b>{list.length}</b>
+              </div>
+            </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
               <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} style={select}>
                 <option value="deadline">締切が短い順</option>
                 <option value="release">発売日順</option>
@@ -94,10 +115,9 @@ export default function PrizesPage() {
               placeholder="検索：雑誌名 / 懸賞名 / プレゼント内容（Switch等）"
               style={searchInput}
             />
-            <button onClick={() => setQ("")} style={btnSoft}>クリア</button>
-            <div style={{ fontSize: 13, color: "#444", alignSelf: "center" }}>
-              件数：<b>{list.length}</b>
-            </div>
+            <button onClick={() => setQ("")} style={btnSoft}>
+              クリア
+            </button>
           </div>
         </header>
 
@@ -114,29 +134,41 @@ export default function PrizesPage() {
                 const prizeId = clean(p.prize_id) || `${clean(p.magazine_id)}_${idx}`;
                 const mag = magById.get(clean(p.magazine_id));
 
+                const magId = clean(mag?.magazine_id);
+                const canGoDetail = !!magId;
+                const detailHref = canGoDetail ? `/magazine/${encodeURIComponent(magId)}` : "";
+
                 const magTitle = clean(mag?.タイトル) || clean(p.magazine_id) || "（雑誌）";
-                const release = ymd(mag?.発売日); // ✅ 発売日表示
+                const release = ymd(mag?.発売日);
                 const lines = splitByComma(p.内容);
 
                 const done = applied.has(prizeId);
-                const detailHref = clean(mag?.magazine_id)
-                  ? `/magazine/${encodeURIComponent(clean(mag?.magazine_id))}`
-                  : "#";
 
                 const amazonUrl = clean(mag?.AmazonURL);
                 const ebookUrl = clean(mag?.電子版URL);
 
                 return (
                   <article key={prizeId} style={card}>
-                    <Link href={detailHref} style={{ textDecoration: "none", color: "inherit" }}>
-                      <span style={magLabel}>{magTitle}</span>
-                    </Link>
+                    {/* ✅ 雑誌名（詳細へ） */}
+                    {canGoDetail ? (
+                      <Link href={detailHref} style={{ textDecoration: "none", color: "inherit" }}>
+                        <span style={magLabel} title="雑誌の詳細へ">
+                          {magTitle}
+                        </span>
+                      </Link>
+                    ) : (
+                      <span style={{ ...magLabel, opacity: 0.55 }} title="雑誌詳細が未登録です">
+                        {magTitle}
+                      </span>
+                    )}
 
-                    {/* ✅ 発売日を締切の上に */}
+                    {/* ✅ 発売日（締切の上） */}
                     {release ? <div style={releaseLine}>発売日：{release}</div> : null}
 
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                      <div style={{ fontSize: 18, fontWeight: 900 }}>{clean(p.懸賞名) || "懸賞"}</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, lineHeight: 1.35 }}>
+                        {clean(p.懸賞名) || "懸賞"}
+                      </div>
 
                       <button
                         onClick={() => applied.toggle(prizeId)}
@@ -145,28 +177,39 @@ export default function PrizesPage() {
                           background: done ? "#111" : "#fff",
                           color: done ? "#fff" : "#111",
                         }}
+                        aria-label={done ? "応募済み" : "未応募"}
+                        title="応募済み管理"
                       >
                         {done ? "応募済み" : "未応募"}
                       </button>
                     </div>
 
                     <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.6 }}>
-                      <div><b>締切：</b>{clean(p.締切) || "—"}</div>
-                      <div><b>応募方法：</b>{clean(p.応募方法) || "—"}</div>
+                      <div>
+                        <b>締切：</b>
+                        {clean(p.締切) || "—"}
+                      </div>
+                      <div>
+                        <b>応募方法：</b>
+                        {clean(p.応募方法) || "—"}
+                      </div>
                     </div>
 
+                    {/* ✅ プレゼント内容 */}
                     <details style={{ marginTop: 10 }}>
                       <summary style={summary}>プレゼント内容を開く</summary>
                       {lines.length ? (
                         <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 16, lineHeight: 1.7 }}>
-                          {lines.map((t, i) => <li key={i}>{t}</li>)}
+                          {lines.map((t, i) => (
+                            <li key={i}>{t}</li>
+                          ))}
                         </ul>
                       ) : (
                         <div style={{ marginTop: 8, fontSize: 16 }}>{clean(p.内容) || "—"}</div>
                       )}
                     </details>
 
-                    {/* ✅ 右下に販売サイトURL（Amazon/電子版） */}
+                    {/* ✅ 右下：購入リンク */}
                     <div style={bottomRow}>
                       <div />
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>

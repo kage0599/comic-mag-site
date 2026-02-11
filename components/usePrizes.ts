@@ -1,3 +1,4 @@
+// app/components/usePrizes.ts
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,8 +13,17 @@ export type Prize = {
   応募URL?: string;
 };
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxchM93nj5pVK_sGz-gaMjOnxDBYIJ5DAbKkUoyj1iveZy3UVul3fZcuGyJkHT6aYuLsw/exec";
-const CACHE_KEY = "prizes_cache_v1";
+// ✅ 他のhooksと統一：環境変数を使う
+const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL!;
+const CACHE_KEY = "prizes_cache_v2"; // v1→v2にして壊れたキャッシュを避ける
+
+function safeJsonParse<T>(s: string): T | null {
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return null;
+  }
+}
 
 export function usePrizes() {
   const [items, setItems] = useState<Prize[]>([]);
@@ -21,25 +31,56 @@ export function usePrizes() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // 1) 先にキャッシュがあれば即表示（体感速度UP）
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached) setItems(JSON.parse(cached));
+      if (cached) {
+        const arr = safeJsonParse<Prize[]>(cached);
+        if (Array.isArray(arr)) setItems(arr);
+      }
     } catch {}
 
-    setLoading(true);
-    setError("");
+    // 2) 裏で最新取得（タイムアウト/キャンセル対応）
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), 15000); // 15秒で中断
 
-    fetch(`${GAS_URL}?type=prizes`)
-      .then((r) => r.json())
-      .then((data) => {
+    (async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        // ✅ 必ず type=prizes を付ける
+        const url = `${GAS_URL}?type=prizes`;
+
+        const res = await fetch(url, {
+          cache: "no-store",
+          signal: ac.signal,
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
         const arr = Array.isArray(data) ? data : [];
+
         setItems(arr);
+
         try {
           sessionStorage.setItem(CACHE_KEY, JSON.stringify(arr));
         } catch {}
-      })
-      .catch(() => setError("懸賞データ取得に失敗しました（GAS デプロイ/権限 を確認）"))
-      .finally(() => setLoading(false));
+      } catch (e: any) {
+        // Abort（タイムアウト/画面遷移）なら静かに
+        if (e?.name === "AbortError") return;
+        setError("懸賞データ取得に失敗しました（GAS URL / デプロイ / 権限 を確認）");
+      } finally {
+        clearTimeout(timeout);
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      clearTimeout(timeout);
+      ac.abort();
+    };
   }, []);
 
   return { items, loading, error };
