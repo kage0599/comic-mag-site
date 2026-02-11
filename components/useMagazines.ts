@@ -1,34 +1,24 @@
-// app/components/useMagazines.ts
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export type Magazine = {
   magazine_id?: string;
-  発売日?: string; // "yyyy-mm-dd" or "yyyy/mm/dd" など
+  発売日?: string;
   タイトル?: string;
   値段?: string | number;
   表紙画像?: string;
   AmazonURL?: string;
   電子版URL?: string;
-  R18?: string | boolean | number; // true/1/"TRUE"/"R18" など想定
+  R18?: string | boolean | number;
 };
 
-// ✅ 環境変数に統一
-const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL!;
+const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL; // ✅これに統一
 
-// キャッシュTTL（例：10分） ※更新頻度に合わせて調整OK
 const CACHE_TTL_MS = 10 * 60 * 1000;
-
-// バージョンを変えるとキャッシュが自動で作り直される
 const CACHE_VERSION = "v2";
 
-// storageに入れる形
-type CachePayload = {
-  v: string;
-  savedAt: number;
-  data: Magazine[];
-};
+type CachePayload = { v: string; savedAt: number; data: Magazine[] };
 
 function safeJsonParse<T>(text: string): T | null {
   try {
@@ -39,32 +29,32 @@ function safeJsonParse<T>(text: string): T | null {
 }
 
 function makeCacheKey(gasUrl: string) {
-  // GASのURLが変わってもキャッシュが混ざらないようにする
   return `magazines_cache_${CACHE_VERSION}_${encodeURIComponent(gasUrl)}`;
 }
 
 export function useMagazines(options?: { forceRefresh?: boolean }) {
-  const forceRefresh = !!options?.forceRefresh;
+  const resolvedGasUrl = GAS_URL || ""; // undefined対策（エラー表示に回す）
+  const cacheKey = useMemo(() => makeCacheKey(resolvedGasUrl || "missing_gas_url"), [resolvedGasUrl]);
 
-  const cacheKey = useMemo(() => makeCacheKey(GAS_URL), []);
   const [items, setItems] = useState<Magazine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // StrictMode(開発)でeffectが2回走っても多重fetchしないため
   const fetchedOnceRef = useRef(false);
 
   useEffect(() => {
-    // 開発環境StrictModeの二重実行対策
     if (fetchedOnceRef.current) return;
     fetchedOnceRef.current = true;
 
+    if (!resolvedGasUrl) {
+      setLoading(false);
+      setError("GAS URL が未設定です（NEXT_PUBLIC_GAS_URL を環境変数に設定してください）");
+      return;
+    }
+
     const controller = new AbortController();
 
-    // ✅ 15秒タイムアウト
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    // 1) まずキャッシュがあれば即表示（体感速度UP）
+    // 1) cache即表示
     let cacheUsed = false;
     try {
       const raw = sessionStorage.getItem(cacheKey) || localStorage.getItem(cacheKey);
@@ -75,27 +65,18 @@ export function useMagazines(options?: { forceRefresh?: boolean }) {
           cacheUsed = true;
 
           const freshEnough = Date.now() - payload.savedAt < CACHE_TTL_MS;
-          // キャッシュが十分新しければ、読み込み中を短くする
-          if (freshEnough && !forceRefresh) {
-            setLoading(false);
-          }
+          if (freshEnough && !options?.forceRefresh) setLoading(false);
         }
       }
-    } catch {
-      // ストレージ不可でも動作させる
-    }
+    } catch {}
 
-    // 2) 裏で最新を取得して差し替え（SWR）
-    // TTL内で forceRefresh でもないなら fetchを省略してOK
-    if (!forceRefresh) {
+    // 2) TTL内ならfetch省略
+    if (!options?.forceRefresh) {
       try {
         const raw = sessionStorage.getItem(cacheKey) || localStorage.getItem(cacheKey);
         const payload = raw ? safeJsonParse<CachePayload>(raw) : null;
         const freshEnough = payload ? Date.now() - payload.savedAt < CACHE_TTL_MS : false;
-        if (freshEnough) {
-          clearTimeout(timeout);
-          return () => controller.abort();
-        }
+        if (freshEnough) return () => controller.abort();
       } catch {}
     }
 
@@ -104,11 +85,8 @@ export function useMagazines(options?: { forceRefresh?: boolean }) {
 
     (async () => {
       try {
-        const url = `${GAS_URL}?type=magazines`;
-        const res = await fetch(url, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
+        const url = `${resolvedGasUrl}?type=magazines`;
+        const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
@@ -117,13 +95,8 @@ export function useMagazines(options?: { forceRefresh?: boolean }) {
         if (!controller.signal.aborted) {
           setItems(arr);
 
-          const payload: CachePayload = {
-            v: CACHE_VERSION,
-            savedAt: Date.now(),
-            data: arr,
-          };
+          const payload: CachePayload = { v: CACHE_VERSION, savedAt: Date.now(), data: arr };
 
-          // sessionStorage優先、失敗したらlocalStorage
           try {
             sessionStorage.setItem(cacheKey, JSON.stringify(payload));
           } catch {
@@ -132,20 +105,16 @@ export function useMagazines(options?: { forceRefresh?: boolean }) {
             } catch {}
           }
         }
-      } catch (e) {
+      } catch {
         if (controller.signal.aborted) return;
         setError("データ取得に失敗しました（GAS デプロイ/権限/URL を確認）");
       } finally {
         if (!controller.signal.aborted) setLoading(false);
-        clearTimeout(timeout);
       }
     })();
 
-    return () => {
-      clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [cacheKey, forceRefresh]);
+    return () => controller.abort();
+  }, [cacheKey, options?.forceRefresh, resolvedGasUrl]);
 
   return { items, loading, error };
 }
