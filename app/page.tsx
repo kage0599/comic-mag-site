@@ -163,31 +163,33 @@ export default function Page() {
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
               {/* ✅ 今月/先月/来月ボタン */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <button
-                  onClick={() => setMonthSafe(ymNowJst())}
-                  style={btnSoft}
-                  disabled={!canPrevNext}
-                  title="今月"
-                >
-                  今月
-                </button>
-                <button
-                  onClick={() => setMonthSafe(addMonths(monthKey, -1))}
-                  style={btnSoft}
-                  disabled={!canPrevNext}
-                  title="先月"
-                >
-                  ← 先月
-                </button>
-                <button
-                  onClick={() => setMonthSafe(addMonths(monthKey, 1))}
-                  style={btnSoft}
-                  disabled={!canPrevNext}
-                  title="来月"
-                >
-                  来月 →
-                </button>
-              </div>
+  <button
+    onClick={() => setMonthSafe(addMonths(monthKey, -1))}
+    style={btnSoft}
+    disabled={!canPrevNext}
+    title="先月"
+  >
+    ← 先月
+  </button>
+
+  <button
+    onClick={() => setMonthSafe(ymNowJst())}
+    style={btnSoft}
+    disabled={!canPrevNext}
+    title="今月"
+  >
+    今月
+  </button>
+
+  <button
+    onClick={() => setMonthSafe(addMonths(monthKey, 1))}
+    style={btnSoft}
+    disabled={!canPrevNext}
+    title="来月"
+  >
+    来月 →
+  </button>
+</div>
 
               {/* select */}
               <select
