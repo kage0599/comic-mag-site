@@ -82,9 +82,6 @@ export default function PrizesPage() {
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
         {/* ✅ タブ */}
-        <div style={{ marginBottom: 12 }}>
-          <TopTabs />
-        </div>
 
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
