@@ -136,10 +136,6 @@ export default function Page() {
     <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
         {/* タブ（囲み＋余白） */}
-        <div style={tabsBox}>
-          <TopTabs />
-        </div>
-
         {/* ヘッダー */}
         <header style={panel}>
           <div style={{ display: "grid", gap: 14 }}>
