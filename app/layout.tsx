@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import Link from "next/link";
+import TopTabs from "../components/TopTabs";
+import BackToTop from "../components/BackToTop";
+import { usePathname } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "コミック誌発売日・懸賞まとめ",
@@ -14,20 +16,32 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body style={{ margin: 0 }}>
+      <body style={{ margin: 0, background: "#f6f7fb" }}>
+        {/* タブ表示（詳細ページでは非表示にする場合は page側で消す） */}
+        <TopTabs />
+
         {children}
 
-        {/* ✅ ここからフッター */}
+        <BackToTop />
+
         <footer style={footerStyle}>
           <div style={footerLinks}>
-            <Link href="/about">運営者情報</Link>
-            <Link href="/privacy">プライバシーポリシー</Link>
-            <Link href="/contact">お問い合わせ</Link>
+            <a href="/about" style={footerLink}>
+              運営者情報
+            </a>
+            <a href="/privacy" style={footerLink}>
+              プライバシーポリシー
+            </a>
+            <a href="/contact" style={footerLink}>
+              お問い合わせ
+            </a>
           </div>
-          <p style={{ fontSize: 12, marginTop: 10 }}>
+
+          <p style={{ fontSize: 12, marginTop: 12 }}>
             © {new Date().getFullYear()} コミック誌情報まとめ
           </p>
-          <p style={{ fontSize: 11, marginTop: 6 }}>
+
+          <p style={{ fontSize: 11, marginTop: 6, opacity: 0.7 }}>
             ※一部作品には18歳以上向けコンテンツが含まれます。
           </p>
         </footer>
@@ -49,5 +63,12 @@ const footerLinks: React.CSSProperties = {
   justifyContent: "center",
   gap: 20,
   flexWrap: "wrap",
+};
+
+const footerLink: React.CSSProperties = {
+  color: "#fff",
+  fontSize: 14,
+  fontWeight: 700,
+  textDecoration: "none",
 };
 
