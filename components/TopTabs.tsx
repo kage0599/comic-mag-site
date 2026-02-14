@@ -3,81 +3,70 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function TopTabs() {
+const MANGA_RELEASE_SITE_URL = "https://manga-site3.vercel.app"; 
+// ↑ あなたの漫画発売日サイトURLに変更
+
+export default function TopLeftTabs() {
   const pathname = usePathname();
 
-  // 詳細ページでは非表示にする場合
-  if (pathname.startsWith("/magazine/")) {
-    return null;
-  }
+  const isActive = (href: string) => pathname === href;
 
-  const tabs = [
-    {
-      href: "https://manga-site3.vercel.app/",
-      label: "漫画発売日一覧",
-      external: true,
-    },
-    { href: "/", label: "発売日一覧" },
-    { href: "/prizes", label: "懸賞一覧" },
-    { href: "/services", label: "全プレ一覧" },
-  ];
+  const Tab = ({ href, label }: { href: string; label: string }) => (
+    <Link href={href} className={`tab ${isActive(href) ? "active" : ""}`}>
+      {label}
+    </Link>
+  );
+
+  const ExtTab = ({ href, label }: { href: string; label: string }) => (
+    <a href={href} target="_blank" rel="noreferrer" className="tab">
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        {label}
+        {/* 外部リンクSVG（漫画サイト側と統一） */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          style={{ flexShrink: 0 }}
+        >
+          <path
+            d="M14 5h5v5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M10 14L19 5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M19 14v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    </a>
+  );
 
   return (
-    <div style={wrap}>
-      {tabs.map((tab) => {
-        const active =
-          !tab.external && pathname === tab.href;
+    <div className="tabsWrap">
+      <Tab href="/" label="発売日一覧" />
+      <Tab href="/prizes" label="懸賞一覧" />
+      <Tab href="/services" label="全プレ一覧" />
 
-        if (tab.external) {
-          return (
-            <a
-              key={tab.label}
-              href={tab.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                ...tabStyle,
-                background: "#f1f1f1",
-                color: "#333",
-              }}
-            >
-              {tab.label}
-            </a>
-          );
-        }
-
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            style={{
-              ...tabStyle,
-              background: active ? "#111" : "#f1f1f1",
-              color: active ? "#fff" : "#333",
-            }}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
+      {/* ✅ 指定：全プレの右側に配置 */}
+      <ExtTab
+        href={MANGA_RELEASE_SITE_URL}
+        label="漫画発売日一覧"
+      />
     </div>
   );
 }
-
-const wrap: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  padding: "12px 16px",
-  justifyContent: "flex-start", // ← 左寄せ
-  borderBottom: "1px solid #eee",
-  background: "#fff",
-  flexWrap: "wrap",
-};
-
-const tabStyle: React.CSSProperties = {
-  padding: "8px 14px",
-  borderRadius: 20,
-  textDecoration: "none",
-  fontSize: 14,
-  fontWeight: 700,
-};
