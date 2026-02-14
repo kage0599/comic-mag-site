@@ -1,22 +1,24 @@
 import type { MetadataRoute } from "next";
 
 const SITE = "https://comic-manga-site.vercel.app";
+const GAS_URL = process.env.GAS_URL; // ← undefinedでも落とさない
 
-function getGasUrl() {
-  const url = process.env.NEXT_PUBLIC_GAS_URL || process.env.GAS_URL;
-  if (!url) throw new Error("GAS_URL is missing. Set NEXT_PUBLIC_GAS_URL (recommended).");
-  return url;
-}
+async function getMagIdsSafe(): Promise<string[]> {
+  if (!GAS_URL) return []; // ✅ ここで防ぐ
 
-async function getMagIds(): Promise<string[]> {
-  const GAS_URL = getGasUrl();
-  const res = await fetch(`${GAS_URL}?type=magazines`, { next: { revalidate: 3600 } });
-  const arr = (await res.json()) as any[];
-  return arr.map((m) => String(m.magazine_id || "").trim()).filter(Boolean);
+  try {
+    const res = await fetch(`${GAS_URL}?type=magazines`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+
+    const arr = (await res.json()) as any[];
+    return arr.map((m) => String(m?.magazine_id || "").trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const ids = await getMagIds();
+  const ids = await getMagIdsSafe();
 
   const staticUrls: MetadataRoute.Sitemap = [
     { url: `${SITE}/`, changeFrequency: "daily", priority: 1 },
