@@ -71,4 +71,3 @@ const footerLink: React.CSSProperties = {
   fontWeight: 700,
   textDecoration: "none",
 };
-
