@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import TopTabs from "../components/TopTabs";
 import BackToTop from "../components/BackToTop";
-import { usePathname } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "コミック誌発売日・懸賞まとめ",
@@ -17,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body style={{ margin: 0, background: "#f6f7fb" }}>
-        {/* タブ表示（詳細ページでは非表示にする場合は page側で消す） */}
+        {/* ✅ タブ表示（制御はTopTabs内でやる） */}
         <TopTabs />
 
         {children}

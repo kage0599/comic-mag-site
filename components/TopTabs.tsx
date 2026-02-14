@@ -6,6 +6,11 @@ import { usePathname } from "next/navigation";
 export default function TopTabs() {
   const pathname = usePathname();
 
+  // ✅ 詳細ページでは非表示
+  if (pathname.startsWith("/magazine/")) {
+    return null;
+  }
+
   const tabs = [
     { href: "/", label: "発売日一覧" },
     { href: "/prizes", label: "懸賞一覧" },
