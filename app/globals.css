@@ -7,23 +7,57 @@
   scrollbar-width: none;  /* Firefox */
 }
 
+/* ===============================
+   上部タブ（漫画発売日サイト統一版）
+=============================== */
+.tabsWrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #f6f7fb;
+  padding: 16px 16px;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 14px;
+
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .tabsWrap::-webkit-scrollbar {
-  display: none;          /* スクロールバー非表示 */
+  display: none;
 }
 
 .tab {
-  flex: 0 0 auto;         /* ← 折り返さない */
-  padding: 12px 20px;     /* ← 少し大きめ */
-  border-radius: 999px;
-  border: 1px solid #ddd;
-  background: #fff;
-  font-weight: 700;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 14px 22px;          /* 高さをしっかり出す */
+  border-radius: 999px;        /* 完全丸 */
+  border: 1px solid #e5e5e5;
+  background: #f7f7f7;
+  color: #111;
   text-decoration: none;
-  color: #222;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+
+  font-weight: 700;            /* 900 → 700に */
+  font-size: 15px;
+  letter-spacing: 0.02em;
+
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  transition: all 0.18s ease;
 }
+
+.tab.active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
 
 .tab.active {
   background: #111;
