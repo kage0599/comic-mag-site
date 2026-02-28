@@ -9,9 +9,11 @@ export const metadata: Metadata = {
   title: "コミック誌発売日・懸賞まとめ",
   description: "漫画雑誌の発売日・懸賞・応募者全員サービス情報まとめ",
   verification: {
-    google: "QvjZIVXrewSsk_JvwNtbP-cjhxF3Fa143mhYR-G8i7c", // 最新の方を反映
+    google: "8QSiGgapWP7-gtzGn6QKnfTjMa7JSvPPStEtoPglIO8", // 最新の方を反映
   },
 };
+
+<meta name="google-site-verification" content="8QSiGgapWP7-gtzGn6QKnfTjMa7JSvPPStEtoPglIO8" />
 
 export default function RootLayout({
   children,
