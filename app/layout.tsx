@@ -1,11 +1,16 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Script from "next/script";
 import TopTabs from "../components/TopTabs";
 import BackToTop from "../components/BackToTop";
 
+// ✅ メタデータの設定（verificationをオブジェクト内に正しく配置）
 export const metadata: Metadata = {
   title: "コミック誌発売日・懸賞まとめ",
   description: "漫画雑誌の発売日・懸賞・応募者全員サービス情報まとめ",
+  verification: {
+    google: "QvjZIVXrewSsk_JvwNtbP-cjhxF3Fa143mhYR-G8i7c", // 最新の方を反映
+  },
 };
 
 export default function RootLayout({
@@ -15,14 +20,26 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
+      <head>
+        {/* ✅ Google AdSense */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8658592043491821"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body style={{ margin: 0, background: "#f6f7fb" }}>
-        {/* ✅ タブ表示（制御はTopTabs内でやる） */}
+        {/* ✅ 共通ヘッダー・タブ */}
         <TopTabs />
 
-        {children}
+        {/* ✅ メインコンテンツ */}
+        <main>{children}</main>
 
+        {/* ✅ トップへ戻るボタン */}
         <BackToTop />
 
+        {/* ✅ 共通フッター */}
         <footer style={footerStyle}>
           <div style={footerLinks}>
             <a href="/about" style={footerLink}>
@@ -48,6 +65,8 @@ export default function RootLayout({
     </html>
   );
 }
+
+// --- スタイル定義 ---
 
 const footerStyle: React.CSSProperties = {
   marginTop: 60,
