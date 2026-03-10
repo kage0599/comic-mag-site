@@ -1,27 +1,39 @@
 import { MetadataRoute } from 'next'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  // ここを必ず「https://manga-tokuten.com」に固定します
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://manga-tokuten.com'
 
-  return [
+  // 1. 固定のページ（トップ、お問い合わせ、プライバシーポリシーなど）
+  const staticPaths: MetadataRoute.Sitemap = [
     {
-      url: `${baseUrl}`, // これで https://manga-tokuten.com になります
+      url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,
     },
     {
-      url: `${baseUrl}/book`, // これで https://manga-tokuten.com/book になります
+      url: `${baseUrl}/about`,
       lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/survey`, // これで https://manga-tokuten.com/survey になります
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
+      changeFrequency: 'monthly',
       priority: 0.8,
     },
   ]
+
+  // 2. 動的なページ（漫画詳細ページなど）がある場合
+  // ここでデータベースなどからIDやスラッグを取得する処理を書きます
+  // 例: const mangas = await getMangaList() 
+  
+  const dynamicPaths: MetadataRoute.Sitemap = [
+    // もし個別の漫画ページなどがあれば、ここに追加していきます
+    /*
+    {
+      url: `${baseUrl}/manga/example-id`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
+    */
+  ]
+
+  return [...staticPaths, ...dynamicPaths]
 }

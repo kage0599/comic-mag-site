@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const MANGA_RELEASE_SITE_URL = "https://manga-tokuten.com"; 
+const MANGA_RELEASE_SITE_URL = "https://manga-site3.vercel.app"; 
 // ↑ あなたの漫画発売日サイトURLに変更
 
 export default function TopLeftTabs() {
