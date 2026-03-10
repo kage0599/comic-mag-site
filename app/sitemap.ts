@@ -1,36 +1,39 @@
-import type { MetadataRoute } from "next";
-
-const SITE = "https://comic-manga-site.vercel.app";
-const GAS_URL = process.env.GAS_URL; // ← undefinedでも落とさない
-
-async function getMagIdsSafe(): Promise<string[]> {
-  if (!GAS_URL) return []; // ✅ ここで防ぐ
-
-  try {
-    const res = await fetch(`${GAS_URL}?type=magazines`, { next: { revalidate: 3600 } });
-    if (!res.ok) return [];
-
-    const arr = (await res.json()) as any[];
-    return arr.map((m) => String(m?.magazine_id || "").trim()).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
+import { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const ids = await getMagIdsSafe();
+  const baseUrl = 'https://manga-tokuten.com'
 
-  const staticUrls: MetadataRoute.Sitemap = [
-    { url: `${SITE}/`, changeFrequency: "daily", priority: 1 },
-    { url: `${SITE}/prizes`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${SITE}/services`, changeFrequency: "daily", priority: 0.9 },
-  ];
+  // 1. 固定のページ（トップ、お問い合わせ、プライバシーポリシーなど）
+  const staticPaths: MetadataRoute.Sitemap = [
+    {
+      url: baseUrl,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 1,
+    },
+    {
+      url: `${baseUrl}/about`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+  ]
 
-  const magUrls: MetadataRoute.Sitemap = ids.map((id) => ({
-    url: `${SITE}/magazine/${encodeURIComponent(id)}`,
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  // 2. 動的なページ（漫画詳細ページなど）がある場合
+  // ここでデータベースなどからIDやスラッグを取得する処理を書きます
+  // 例: const mangas = await getMangaList() 
+  
+  const dynamicPaths: MetadataRoute.Sitemap = [
+    // もし個別の漫画ページなどがあれば、ここに追加していきます
+    /*
+    {
+      url: `${baseUrl}/manga/example-id`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
+    */
+  ]
 
-  return [...staticUrls, ...magUrls];
+  return [...staticPaths, ...dynamicPaths]
 }
