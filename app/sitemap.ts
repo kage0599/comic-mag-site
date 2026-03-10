@@ -1,8 +1,9 @@
+
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   // 環境変数に頼らず、直接ドメインを指定して間違いを防ぎます
-  const baseUrl = 'https://manga-tokuten.com'
+  const baseUrl = 'https://manga-tokuten.online'
 
   return [
     {
