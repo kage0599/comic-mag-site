@@ -7,7 +7,7 @@ import BackToTop from "../components/BackToTop";
 // ✅ メタデータの設定
 export const metadata: Metadata = {
   // 1. これを追加：SitemapやメタデータのURL基準をドメインに固定します
-  metadataBase: new URL('https://manga-tokuten.com'), 
+  metadataBase: new URL('https://manga-tokuten.online'), 
   
   title: "コミック誌発売日・懸賞まとめ",
   description: "漫画雑誌の発売日・懸賞・応募者全員サービス情報まとめ",
@@ -15,9 +15,6 @@ export const metadata: Metadata = {
     google: "8QSiGgapWP7-gtzGn6QKnfTjMa7JSvPPStEtoPglIO8",
   },
 };
-
-// ⚠️ 注意：ここにあった <meta ... /> タグは不要なので削除しました。
-// metadata オブジェクトの verification で自動生成されるため、ここに書くとエラーになります。
 
 export default function RootLayout({
   children,
