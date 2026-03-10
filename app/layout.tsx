@@ -4,16 +4,20 @@ import Script from "next/script";
 import TopTabs from "../components/TopTabs";
 import BackToTop from "../components/BackToTop";
 
-// ✅ メタデータの設定（verificationをオブジェクト内に正しく配置）
+// ✅ メタデータの設定
 export const metadata: Metadata = {
+  // 1. これを追加：SitemapやメタデータのURL基準をドメインに固定します
+  metadataBase: new URL('https://manga-tokuten.com'), 
+  
   title: "コミック誌発売日・懸賞まとめ",
   description: "漫画雑誌の発売日・懸賞・応募者全員サービス情報まとめ",
   verification: {
-    google: "8QSiGgapWP7-gtzGn6QKnfTjMa7JSvPPStEtoPglIO8", // 最新の方を反映
+    google: "8QSiGgapWP7-gtzGn6QKnfTjMa7JSvPPStEtoPglIO8",
   },
 };
 
-<meta name="google-site-verification" content="8QSiGgapWP7-gtzGn6QKnfTjMa7JSvPPStEtoPglIO8" />
+// ⚠️ 注意：ここにあった <meta ... /> タグは不要なので削除しました。
+// metadata オブジェクトの verification で自動生成されるため、ここに書くとエラーになります。
 
 export default function RootLayout({
   children,
@@ -32,27 +36,15 @@ export default function RootLayout({
         />
       </head>
       <body style={{ margin: 0, background: "#f6f7fb" }}>
-        {/* ✅ 共通ヘッダー・タブ */}
         <TopTabs />
-
-        {/* ✅ メインコンテンツ */}
         <main>{children}</main>
-
-        {/* ✅ トップへ戻るボタン */}
         <BackToTop />
 
-        {/* ✅ 共通フッター */}
         <footer style={footerStyle}>
           <div style={footerLinks}>
-            <a href="/about" style={footerLink}>
-              運営者情報
-            </a>
-            <a href="/privacy" style={footerLink}>
-              プライバシーポリシー
-            </a>
-            <a href="/contact" style={footerLink}>
-              お問い合わせ
-            </a>
+            <a href="/about" style={footerLink}>運営者情報</a>
+            <a href="/privacy" style={footerLink}>プライバシーポリシー</a>
+            <a href="/contact" style={footerLink}>お問い合わせ</a>
           </div>
 
           <p style={{ fontSize: 12, marginTop: 12 }}>
@@ -69,7 +61,6 @@ export default function RootLayout({
 }
 
 // --- スタイル定義 ---
-
 const footerStyle: React.CSSProperties = {
   marginTop: 60,
   padding: "30px 20px",
