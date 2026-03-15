@@ -1,16 +1,18 @@
-// app/HomeClient.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { useFavorites } from "../components/useFavorites";
+import { useFavorites } from "..//components/useFavorites";
 import A8Ad from "../components/A8Ad";
 
-/** ===== 補助関数 ===== */
+/** 補助関数 */
 const clean = (v: any) => String(v ?? "").trim();
 const toYmd = (v?: string) => clean(v).replace(/\//g, "-").slice(0, 10);
 const toMonthKey = (ymd: string) => ymd.slice(0, 7);
-const ymNow = () => new Date().toISOString().slice(0, 7);
+const ymNow = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
 const addMonths = (ym: string, d: number) => {
   const [y, m] = ym.split("-").map(Number);
   const dt = new Date(y, m - 1 + d, 1);
@@ -18,12 +20,23 @@ const addMonths = (ym: string, d: number) => {
 };
 const getHighRes = (url?: string) => {
   const s = clean(url);
+  if (!s) return "";
   if (s.includes("amazon.com")) return s.replace(/\._S[LX]\d+_\./, "._SL500_.");
   if (s.includes("rakuten.co.jp")) return s.replace(/\?_ex=\d+x\d+/, "?_ex=500x500");
   return s;
 };
 
-/** ✅ 雑誌名から号数や季節表記などを除去して「純粋な誌名」だけにする関数 */
+/** ✅ 日付を「2026年3月2日」の形式にする関数 */
+const formatDateJp = (ymd: string) => {
+  if (!ymd || ymd === "発売日不明") return "発売日不明";
+  const parts = ymd.split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}年${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
+  }
+  return ymd;
+};
+
+/** 号数や季節表記などを除去して「純粋な誌名」にする */
 const getBaseName = (s: string) => {
   return s
     .replace(/\s*(\d+年.*号|\d+号|Vol\..*|No\..*|\d+[\-/]\d+|WINTER|SPRING|SUMMER|AUTUMN|増刊|新年|特別).*$/i, "")
@@ -37,21 +50,18 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
   const [filterMag, setFilterMag] = useState("");
   const [q, setQ] = useState("");
 
-  // ✅ 誌名だけで重複排除したリスト（プルダウン絞り込み用）
   const magOptions = useMemo(() => {
-    const names = initialItems.map(m => getBaseName(clean(m.タイトル || m.雑誌名)));
+    const names = initialItems.map(m => getBaseName(clean(m.タイトル)));
     return Array.from(new Set(names)).filter(Boolean).sort();
   }, [initialItems]);
 
   const filtered = useMemo(() => {
     return initialItems.filter(m => {
-      const fullTitle = clean(m.タイトル || m.雑誌名);
+      const fullTitle = clean(m.タイトル);
       const baseName = getBaseName(fullTitle);
       
       const matchMonth = toMonthKey(toYmd(m.発売日)) === monthKey;
-      // ✅ プルダウンで選んだ雑誌名と一致するか
       const matchMag = filterMag ? baseName === filterMag : true;
-      // ✅ キーワード検索
       const matchSearch = q ? fullTitle.toLowerCase().includes(q.toLowerCase()) : true;
       
       return matchMonth && matchMag && matchSearch;
@@ -71,12 +81,11 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "10px 16px 60px" }}>
       
-      {/* ===== コントロールパネル ===== */}
       <header style={controlPanel}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          {/* ✅ 「表示中」のテキストを削除し、大見出しのみに */}
           <div>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>発売日一覧</h1>
-            <div style={{ fontSize: 13, color: "#666", marginTop: 6 }}>表示中｜{monthKey.replace("-", "年")}月</div>
           </div>
           
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -88,7 +97,6 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
         </div>
 
         <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {/* ✅ 雑誌絞り込みプルダウン */}
           <select value={filterMag} onChange={(e) => setFilterMag(e.target.value)} style={selectBox}>
             <option value="">全ての雑誌を表示</option>
             {magOptions.map(n => <option key={n} value={n}>{n}</option>)}
@@ -108,40 +116,46 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
         </div>
       </header>
 
-      {/* ===== 広告（上部） ===== */}
       <div style={{ marginTop: 20 }}>
         <A8Ad htmlContent={`<a href="https://px.a8.net/svt/ejp?a8mat=4AZGCD+9TNIVU+4AHY+5Z6WX" rel="nofollow"><img border="0" width="468" height="60" alt="" src="https://www29.a8.net/svt/bgt?aid=260315005594&wid=002&eno=01&mid=s00000020023001004000&mc=1"></a>`} />
       </div>
 
-      {/* ===== 雑誌リスト ===== */}
       <section style={{ marginTop: 24 }}>
         {grouped.length === 0 ? (
           <div style={emptyBox}>条件に一致する雑誌がありません。</div>
         ) : (
           grouped.map(([date, items]) => (
             <div key={date} style={{ marginBottom: 30 }}>
-              <div style={dateHeader}>{date.replace(/-/g, "/")}</div>
+              {/* ✅ 日付を「2026年3月2日」形式で表示 */}
+              <div style={dateHeader}>{formatDateJp(date)}</div>
               
               <div className="responsiveGrid">
                 {items.map((m: any, i: number) => {
-                  const title = clean(m.タイトル || m.雑誌名);
+                  const title = clean(m.タイトル);
                   const isR18 = clean(m.R18) === "1" || clean(m.R18).toLowerCase() === "true";
-                  const hasPrize = clean(m.懸賞) !== "" && clean(m.懸賞) !== "なし";
+                  const imgUrl = getHighRes(m.表紙画像);
                   
                   return (
                     <article key={i} style={card}>
-                      {/* 画像エリア（左側） */}
-                      <Link href={`/magazine/${encodeURIComponent(m.magazine_id || title)}`} style={{ width: 110, flexShrink: 0, position: "relative" }}>
-                        <img 
-                          src={getHighRes(m.表紙画像)} 
-                          alt={title} 
-                          style={{ ...imgStyle, filter: isR18 ? "blur(15px)" : "none" }} 
-                          loading="lazy"
-                        />
+                      <Link href={`/magazine/${encodeURIComponent(m.magazine_id || title)}`} style={{ width: 110, flexShrink: 0, position: "relative", display: "block" }}>
+                        {imgUrl ? (
+                          <img 
+                            src={imgUrl} 
+                            alt={title} 
+                            style={{ ...imgStyle, filter: isR18 ? "blur(15px)" : "none" }} 
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.src = "https://placehold.jp/eeeeee/999999/150x200.png?text=No+Image";
+                            }}
+                          />
+                        ) : (
+                          <div style={{ ...imgStyle, display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: 12, fontWeight: "bold" }}>
+                            No Image
+                          </div>
+                        )}
                         {isR18 && <div style={r18Tag}>R18</div>}
                       </Link>
 
-                      {/* 情報エリア（右側） */}
                       <div style={infoArea}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
                           <div style={titleStyle}>{title}</div>
@@ -150,13 +164,11 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
                           </button>
                         </div>
                         
+                        {/* ✅ 出版社を削除し、価格のみに変更 */}
                         <div style={metaStyle}>
-                          {hasPrize && <span style={prizeBadge}>🎁 懸賞あり</span>}
-                          <div><b>価格：</b>{clean(m.値段) || "—"}</div>
-                          <div><b>出版社：</b>{clean(m.出版社) || "—"}</div>
+                          <div><b>価　格：</b>{clean(m.値段) || "—"}</div>
                         </div>
 
-                        {/* 購入ボタン（右下） */}
                         <div style={buyRow}>
                           {m.AmazonURL && <a href={m.AmazonURL} target="_blank" rel="noreferrer" style={btnAmazon}>Amazon</a>}
                           {m.電子版URL && <a href={m.電子版URL} target="_blank" rel="noreferrer" style={btnDigital}>電子版</a>}
@@ -174,12 +186,12 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
       <style jsx>{`
         .responsiveGrid {
           display: grid;
-          grid-template-columns: 1fr; /* ✅ スマホは1列固定 */
+          grid-template-columns: 1fr;
           gap: 16px;
         }
         @media (min-width: 768px) {
           .responsiveGrid {
-            grid-template-columns: 1fr 1fr; /* ✅ PCは2列固定 */
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
           }
         }
@@ -196,11 +208,13 @@ const selectBox: React.CSSProperties = { padding: "10px 14px", borderRadius: 8, 
 const searchInput: React.CSSProperties = { flex: 1, minWidth: 150, padding: "10px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14 };
 const dateHeader: React.CSSProperties = { fontSize: 18, fontWeight: 900, marginBottom: 16, paddingBottom: 8, borderBottom: "2px solid #111", color: "#111" };
 const card: React.CSSProperties = { background: "#fff", borderRadius: 16, padding: 14, display: "flex", gap: 16, boxShadow: "0 4px 15px rgba(0,0,0,0.04)", border: "1px solid #eee" };
-const imgStyle: React.CSSProperties = { width: "100%", height: "auto", aspectRatio: "3/4", borderRadius: 8, border: "1px solid #eee", objectFit: "cover", background: "#f9f9f9" };
+
+// ✅ 画像が枠内に全て収まるように objectFit を "contain" に変更
+const imgStyle: React.CSSProperties = { width: "100%", height: "auto", aspectRatio: "3/4", borderRadius: 8, border: "1px solid #eee", objectFit: "contain", background: "#fff" };
+
 const infoArea: React.CSSProperties = { flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" };
 const titleStyle: React.CSSProperties = { fontSize: 16, fontWeight: 900, lineHeight: 1.4, wordBreak: "break-all", color: "#111" };
-const metaStyle: React.CSSProperties = { fontSize: 13, color: "#555", marginTop: 8, display: "grid", gap: 4 };
-const prizeBadge: React.CSSProperties = { background: "#fff2cc", color: "#d6a300", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 900, border: "1px solid #ffe599", display: "inline-block", marginBottom: 6 };
+const metaStyle: React.CSSProperties = { fontSize: 13, color: "#555", marginTop: 8, display: "grid", gap: 6 };
 const buyRow: React.CSSProperties = { display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 };
 const btnAmazon: React.CSSProperties = { padding: "8px 16px", background: "#111", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 900, textDecoration: "none" };
 const btnDigital: React.CSSProperties = { padding: "8px 16px", background: "#2b6cff", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 900, textDecoration: "none" };
