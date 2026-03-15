@@ -7,11 +7,11 @@ import { useFavorites } from "./useFavorites";
 // ✅ コミック誌サイトから「漫画サイト」へ飛ばすためのURL
 const MANGA_RELEASE_SITE_URL = "https://manga-tokuten.com";
 
-export default function TopTabs() {
+export default function TopLeftTabs() {
   const pathname = usePathname();
   const fav = useFavorites();
   
-  // ✅ お気に入りの件数取得
+  // ✅ カッコ()を外してエラーを解消（安全のため初期値0も設定）
   const favCount = fav.list ? fav.list.length : 0;
 
   const isActive = (href: string) => pathname === href;
@@ -26,10 +26,36 @@ export default function TopTabs() {
     <a href={href} target="_blank" rel="noreferrer" className="tab extTab">
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
         {label}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-          <path d="M14 5h5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M10 14L19 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M19 14v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* ✅ 絵文字↗は端末で崩れるのでSVG固定 */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          style={{ flexShrink: 0 }}
+        >
+          <path
+            d="M14 5h5v5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M10 14L19 5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M19 14v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </span>
     </a>
@@ -54,16 +80,14 @@ export default function TopTabs() {
           border-bottom: 1px solid #eee;
           width: 100%;
           display: flex;
-          /* ✅ 中央揃え(center)から左寄せ(flex-start)に変更 */
-          justify-content: flex-start; 
-          padding: 12px 16px; /* ✅ 左寄せした時に端に寄りすぎないよう余白を追加 */
+          justify-content: flex-start; /* 左寄せ */
+          padding: 12px 16px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
         .tabsWrap {
           display: flex;
           gap: 8px;
           max-width: 1100px;
-          /* ✅ 左寄せのために width: 100% を維持しつつマージンを調整 */
           margin: 0 auto; 
           width: 100%;
           overflow-x: auto;
