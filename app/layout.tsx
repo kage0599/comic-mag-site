@@ -1,18 +1,29 @@
+// app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
 import Script from "next/script";
-import TopTabs from "../components/TopTabs";
+import TopLeftTabs from "../components/TopTabs"; // ✅ 名前を合わせたコンポーネントに変更
 import BackToTop from "../components/BackToTop";
 
-// ✅ メタデータの設定
+// ✅ メタデータの大幅強化
 export const metadata: Metadata = {
-  // 1. これを追加：SitemapやメタデータのURL基準をドメインに固定します
   metadataBase: new URL('https://manga-tokuten.online'), 
-  
-  title: "コミック誌発売日・懸賞まとめ",
-  description: "漫画雑誌の発売日・懸賞・応募者全員サービス情報まとめ",
+  title: {
+    default: "コミック誌発売日・懸賞・全プレまとめ",
+    template: "%s | コミック誌発売日・懸賞・全プレまとめ",
+  },
+  description: "週刊少年ジャンプ、マガジン、サンデーから青年誌、成人向け雑誌まで。最新号の発売日、店舗特典、懸賞の締切、応募者全員サービス情報を毎日更新！",
   verification: {
     google: "8QSiGgapWP7-gtzGn6QKnfTjMa7JSvPPStEtoPglIO8",
+  },
+  openGraph: {
+    title: "コミック誌発売日・懸賞・全プレまとめ",
+    description: "雑誌ごとの発売日や懸賞の締切を一目でチェック！",
+    type: "website",
+    locale: "ja_JP",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 
@@ -23,20 +34,24 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <head>
-        {/* ✅ Google AdSense */}
+      <body style={{ margin: 0, background: "#f6f7fb", color: "#111" }}>
+        {/* ✅ Google AdSense (lazyOnloadで初期表示を高速化) */}
         <Script
-          async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8658592043491821"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-      </head>
-      <body style={{ margin: 0, background: "#f6f7fb" }}>
-        <TopTabs />
+
+        {/* ✅ ヘッダー：共通タブ */}
+        <header style={{ padding: "10px 16px 0" }}>
+          <TopLeftTabs />
+        </header>
+
         <main>{children}</main>
+
         <BackToTop />
 
+        {/* ✅ フッター：漫画サイトとトーンを統一 */}
         <footer style={footerStyle}>
           <div style={footerLinks}>
             <a href="/about" style={footerLink}>運営者情報</a>
@@ -44,11 +59,12 @@ export default function RootLayout({
             <a href="/contact" style={footerLink}>お問い合わせ</a>
           </div>
 
-          <p style={{ fontSize: 12, marginTop: 12 }}>
-            © {new Date().getFullYear()} コミック誌情報まとめ
-          </p>
+          <div style={{ fontSize: 13, marginTop: 24, fontWeight: 900 }}>
+            © {new Date().getFullYear()} コミック誌発売日・懸賞まとめ
+          </div>
 
-          <p style={{ fontSize: 11, marginTop: 6, opacity: 0.7 }}>
+          <p style={{ fontSize: 11, marginTop: 10, opacity: 0.6, lineHeight: 1.6 }}>
+            当サイトは雑誌の発売情報や懸賞情報をまとめたファンサイトです。<br/>
             ※一部作品には18歳以上向けコンテンツが含まれます。
           </p>
         </footer>
@@ -57,25 +73,26 @@ export default function RootLayout({
   );
 }
 
-// --- スタイル定義 ---
+// --- デザイン定義 ---
 const footerStyle: React.CSSProperties = {
   marginTop: 60,
-  padding: "30px 20px",
-  background: "#111",
-  color: "#fff",
+  padding: "40px 20px",
+  background: "#fff", // 漫画サイトと同じ白ベースに変更
+  borderTop: "1px solid #eee",
+  color: "#111",
   textAlign: "center",
 };
 
 const footerLinks: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
-  gap: 20,
+  gap: 24,
   flexWrap: "wrap",
 };
 
 const footerLink: React.CSSProperties = {
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 700,
+  color: "#555",
+  fontSize: 13,
+  fontWeight: 900,
   textDecoration: "none",
 };

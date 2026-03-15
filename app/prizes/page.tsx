@@ -4,12 +4,13 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 
-import TopTabs from "@/components/TopTabs";
 import { usePrizes, type Prize } from "@/components/usePrizes";
 import { useMagazines, type Magazine } from "@/components/useMagazines";
 import { clean, splitByComma } from "@/components/text";
 import { useAppliedPrizes } from "@/components/useAppliedPrizes";
+import A8Ad from "@/components/A8Ad";
 
+/** ===== 補助関数（元のロジックを維持） ===== */
 function toDateNum(v?: string) {
   const s = clean(v).replace(/\//g, "-").slice(0, 10);
   const t = Date.parse(s);
@@ -62,10 +63,8 @@ export default function PrizesPage() {
     });
 
     if (sortMode === "deadline") {
-      // 締切が近い順（読めないのは最後）
       arr.sort((a, b) => (toDateNum(a.締切) || 9e15) - (toDateNum(b.締切) || 9e15));
     } else {
-      // 発売日順（読めないのは最後）
       arr.sort((a, b) => {
         const ma = magById.get(clean(a.magazine_id));
         const mb = magById.get(clean(b.magazine_id));
@@ -79,46 +78,47 @@ export default function PrizesPage() {
   }, [items, showExpired, now, sortMode, q, magById]);
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f6f7fb" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
-        {/* ✅ タブ */}
-
+    <main style={{ minHeight: "100vh", background: "#f6f7fb", paddingBottom: 40 }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "10px 16px" }}>
+        
         <header style={panel}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>懸賞一覧</h1>
-              <div style={{ marginTop: 6, fontSize: 13, color: "#555" }}>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>懸賞・プレゼント一覧</h1>
+              <div style={{ marginTop: 4, fontSize: 13, color: "#555", fontWeight: 900 }}>
                 件数：<b>{list.length}</b>
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)} style={select}>
-                <option value="deadline">締切が短い順</option>
+                <option value="deadline">締切が近い順</option>
                 <option value="release">発売日順</option>
               </select>
 
-              <button onClick={() => setShowExpired((v) => !v)} style={btnSoft}>
-                {showExpired ? "応募期間外を隠す" : "応募期間外も表示"}
+              <button onClick={() => setShowExpired((v) => !v)} style={btnSoftCompact}>
+                {showExpired ? "期限切れを隠す" : "期限切れも表示"}
               </button>
             </div>
           </div>
 
-          {/* ✅ 検索 */}
-          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="検索：雑誌名 / 懸賞名 / プレゼント内容（Switch等）"
+              placeholder="雑誌名や賞品名で検索..."
               style={searchInput}
             />
-            <button onClick={() => setQ("")} style={btnSoft}>
-              クリア
-            </button>
+            <button onClick={() => setQ("")} style={btnSoftCompact}>クリア</button>
           </div>
         </header>
 
-        <section style={{ marginTop: 14 }}>
+        {/* 広告エリア */}
+        <div style={{ marginTop: 16 }}>
+          <A8Ad htmlContent={`<a href="https://px.a8.net/svt/ejp?a8mat=4AZGCD+9TNIVU+4AHY+5Z6WX" rel="nofollow"><img border="0" width="468" height="60" alt="" src="https://www29.a8.net/svt/bgt?aid=260315005594&wid=002&eno=01&mid=s00000020023001004000&mc=1"></a>`} />
+        </div>
+
+        <section style={{ marginTop: 16 }}>
           {loading ? (
             <div style={{ padding: 18, color: "#555" }}>読み込み中...</div>
           ) : error ? (
@@ -126,47 +126,36 @@ export default function PrizesPage() {
           ) : list.length === 0 ? (
             <div style={emptyBox}>表示する懸賞がありません</div>
           ) : (
-            <div style={grid}>
+            <div className="prizeGrid">
               {list.map((p, idx) => {
                 const prizeId = clean(p.prize_id) || `${clean(p.magazine_id)}_${idx}`;
                 const mag = magById.get(clean(p.magazine_id));
-
                 const magId = clean(mag?.magazine_id);
-                const canGoDetail = !!magId;
-                const detailHref = canGoDetail ? `/magazine/${encodeURIComponent(magId)}` : "";
-
                 const magTitle = clean(mag?.タイトル) || clean(p.magazine_id) || "（雑誌）";
                 const release = ymd(mag?.発売日);
                 const lines = splitByComma(p.内容);
-
                 const done = applied.has(prizeId);
-
                 const amazonUrl = clean(mag?.AmazonURL);
                 const ebookUrl = clean(mag?.電子版URL);
 
                 return (
                   <article key={prizeId} style={card}>
-                    {/* ✅ 雑誌名（詳細へ） */}
-                    {canGoDetail ? (
-                      <Link href={detailHref} style={{ textDecoration: "none", color: "inherit" }}>
-                        <span style={magLabel} title="雑誌の詳細へ">
+                    {/* 雑誌名タグ */}
+                    <div style={{ marginBottom: 10 }}>
+                      {magId ? (
+                        <Link href={`/magazine/${encodeURIComponent(magId)}`} style={magTag}>
                           {magTitle}
-                        </span>
-                      </Link>
-                    ) : (
-                      <span style={{ ...magLabel, opacity: 0.55 }} title="雑誌詳細が未登録です">
-                        {magTitle}
-                      </span>
-                    )}
+                        </Link>
+                      ) : (
+                        <span style={{ ...magTag, opacity: 0.6 }}>{magTitle}</span>
+                      )}
+                    </div>
 
-                    {/* ✅ 発売日（締切の上） */}
-                    {release ? <div style={releaseLine}>発売日：{release}</div> : null}
-
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                      <div style={{ fontSize: 18, fontWeight: 900, lineHeight: 1.35 }}>
-                        {clean(p.懸賞名) || "懸賞"}
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+                      <div style={prizeTitle}>
+                        {clean(p.懸賞名) || "懸賞プレゼント"}
                       </div>
-
+                      {/* 応募管理ボタン */}
                       <button
                         onClick={() => applied.toggle(prizeId)}
                         style={{
@@ -174,53 +163,30 @@ export default function PrizesPage() {
                           background: done ? "#111" : "#fff",
                           color: done ? "#fff" : "#111",
                         }}
-                        aria-label={done ? "応募済み" : "未応募"}
-                        title="応募済み管理"
                       >
-                        {done ? "応募済み" : "未応募"}
+                        {done ? "応募済" : "未応募"}
                       </button>
                     </div>
 
-                    <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.6 }}>
-                      <div>
-                        <b>締切：</b>
-                        {clean(p.締切) || "—"}
-                      </div>
-                      <div>
-                        <b>応募方法：</b>
-                        {clean(p.応募方法) || "—"}
-                      </div>
+                    {/* 発売日・締切情報 */}
+                    <div style={prizeInfo}>
+                      {release && <div><span style={label}>発売：</span>{release}</div>}
+                      <div><span style={label}>締切：</span>{clean(p.締切) || "—"}</div>
+                      <div><span style={label}>方法：</span>{clean(p.応募方法) || "—"}</div>
                     </div>
 
-                    {/* ✅ プレゼント内容 */}
+                    {/* 賞品内容 */}
                     <details style={{ marginTop: 10 }}>
-                      <summary style={summary}>プレゼント内容を開く</summary>
-                      {lines.length ? (
-                        <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: 16, lineHeight: 1.7 }}>
-                          {lines.map((t, i) => (
-                            <li key={i}>{t}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div style={{ marginTop: 8, fontSize: 16 }}>{clean(p.内容) || "—"}</div>
-                      )}
+                      <summary style={summary}>賞品内容を表示</summary>
+                      <ul style={prizeList}>
+                        {lines.length ? lines.map((t, i) => <li key={i}>{t}</li>) : <li>{clean(p.内容) || "—"}</li>}
+                      </ul>
                     </details>
 
-                    {/* ✅ 右下：購入リンク */}
-                    <div style={bottomRow}>
-                      <div />
-                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                        {amazonUrl ? (
-                          <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>
-                            Amazon
-                          </a>
-                        ) : null}
-                        {ebookUrl ? (
-                          <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>
-                            電子版
-                          </a>
-                        ) : null}
-                      </div>
+                    {/* 購入リンク（右下） */}
+                    <div style={buyRow} onClick={(e) => e.stopPropagation()}>
+                      {amazonUrl && <a href={amazonUrl} target="_blank" rel="noreferrer" style={btnMiniDark}>Amazon</a>}
+                      {ebookUrl && <a href={ebookUrl} target="_blank" rel="noreferrer" style={btnMiniBlue}>電子版</a>}
                     </div>
                   </article>
                 );
@@ -229,135 +195,39 @@ export default function PrizesPage() {
           )}
         </section>
       </div>
+
+      <style jsx>{`
+        .prizeGrid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr); /* スマホ2列 */
+          gap: 12px;
+        }
+        @media (min-width: 768px) {
+          .prizeGrid {
+            grid-template-columns: repeat(3, 1fr); /* PC3列 */
+            gap: 16px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
 
-/** styles */
-const panel: React.CSSProperties = {
-  background: "white",
-  borderRadius: 16,
-  padding: 16,
-  boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-};
-
-const select: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  background: "#fff",
-  fontWeight: 900,
-  fontSize: 14,
-};
-
-const btnSoft: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  background: "#fff",
-  cursor: "pointer",
-  fontWeight: 900,
-  fontSize: 14,
-};
-
-const searchInput: React.CSSProperties = {
-  flex: 1,
-  minWidth: 260,
-  padding: "12px 12px",
-  borderRadius: 12,
-  border: "1px solid #ddd",
-  background: "#fff",
-  fontSize: 14,
-};
-
-const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-  gap: 14,
-};
-
-const card: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: 16,
-  padding: 16,
-  border: "1px solid #eee",
-};
-
-const magLabel: React.CSSProperties = {
-  display: "inline-block",
-  marginBottom: 8,
-  padding: "6px 10px",
-  borderRadius: 999,
-  background: "#f1f3f6",
-  border: "1px solid #e3e6ee",
-  fontWeight: 900,
-  fontSize: 13,
-};
-
-const releaseLine: React.CSSProperties = {
-  marginTop: 2,
-  marginBottom: 6,
-  fontSize: 14,
-  fontWeight: 900,
-  color: "#111",
-};
-
-const summary: React.CSSProperties = {
-  cursor: "pointer",
-  fontWeight: 900,
-  fontSize: 14,
-  color: "#111",
-};
-
-const bottomRow: React.CSSProperties = {
-  marginTop: 12,
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 10,
-  alignItems: "flex-end",
-};
-
-const btnMiniDark: React.CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 10,
-  background: "#111",
-  color: "#fff",
-  textDecoration: "none",
-  fontSize: 12,
-  fontWeight: 900,
-};
-
-const btnMiniBlue: React.CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 10,
-  background: "#2b6cff",
-  color: "#fff",
-  textDecoration: "none",
-  fontSize: 12,
-  fontWeight: 900,
-};
-
-const statusBtn: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 999,
-  border: "1px solid #ddd",
-  cursor: "pointer",
-  fontWeight: 900,
-  fontSize: 13,
-  flexShrink: 0,
-};
-
-const errorBox: React.CSSProperties = {
-  padding: 18,
-  background: "#fff",
-  borderRadius: 14,
-  border: "1px solid #ffd2d2",
-  color: "#b00020",
-};
-
-const emptyBox: React.CSSProperties = {
-  padding: 18,
-  background: "#fff",
-  borderRadius: 14,
-  color: "#555",
-};
+/** ===== スタイル定義（他ページと統一） ===== */
+const panel: React.CSSProperties = { background: "white", borderRadius: 16, padding: 16, boxShadow: "0 6px 20px rgba(0,0,0,0.06)" };
+const select: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", fontWeight: 900, fontSize: 12 };
+const btnSoftCompact: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", fontWeight: 900, fontSize: 12, cursor: "pointer" };
+const searchInput: React.CSSProperties = { flex: 1, minWidth: 200, padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", background: "#fff", fontSize: 13 };
+const card: React.CSSProperties = { background: "#fff", borderRadius: 16, padding: 16, border: "1px solid #eee", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", height: "100%" };
+const magTag: React.CSSProperties = { fontSize: 11, fontWeight: 900, color: "#555", background: "#f1f3f6", padding: "3px 10px", borderRadius: 999, textDecoration: "none", display: "inline-block" };
+const prizeTitle: React.CSSProperties = { flex: 1, fontSize: 15, fontWeight: 900, lineHeight: 1.3, color: "#111" };
+const prizeInfo: React.CSSProperties = { marginTop: 10, fontSize: 13, color: "#444", display: "grid", gap: 4 };
+const label: React.CSSProperties = { fontWeight: 900, color: "#888", fontSize: 12 };
+const summary: React.CSSProperties = { cursor: "pointer", fontSize: 12, fontWeight: 900, color: "#aaa", marginTop: 4 };
+const prizeList: React.CSSProperties = { marginTop: 8, paddingLeft: 18, fontSize: 13, lineHeight: 1.6, color: "#555" };
+const buyRow: React.CSSProperties = { marginTop: "auto", display: "flex", gap: 6, justifyContent: "flex-end", paddingTop: 12 };
+const btnMiniDark: React.CSSProperties = { padding: "6px 10px", borderRadius: 6, background: "#111", color: "#fff", textDecoration: "none", fontSize: 10, fontWeight: 900 };
+const btnMiniBlue: React.CSSProperties = { padding: "6px 10px", borderRadius: 6, background: "#f1f3f6", color: "#111", border: "1px solid #ddd", textDecoration: "none", fontSize: 10, fontWeight: 900 };
+const statusBtn: React.CSSProperties = { padding: "6px 10px", borderRadius: 999, border: "1px solid #ddd", fontSize: 10, fontWeight: 900, cursor: "pointer", whiteSpace: "nowrap" };
+const errorBox: React.CSSProperties = { padding: 18, background: "#fff", borderRadius: 14, border: "1px solid #ffd2d2", color: "#b00020" };
+const emptyBox: React.CSSProperties = { padding: 40, textAlign: "center", color: "#888", background: "#fff", borderRadius: 16 };
