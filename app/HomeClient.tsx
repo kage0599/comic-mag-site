@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { useFavorites } from "..//components/useFavorites";
+import { useFavorites } from "../components/useFavorites";
 import A8Ad from "../components/A8Ad";
 
 /** 補助関数 */
@@ -20,20 +20,10 @@ const addMonths = (ym: string, d: number) => {
 };
 const getHighRes = (url?: string) => {
   const s = clean(url);
-  if (!s) return "";
+  if (!s) return ""; 
   if (s.includes("amazon.com")) return s.replace(/\._S[LX]\d+_\./, "._SL500_.");
   if (s.includes("rakuten.co.jp")) return s.replace(/\?_ex=\d+x\d+/, "?_ex=500x500");
   return s;
-};
-
-/** ✅ 日付を「2026年3月2日」の形式にする関数 */
-const formatDateJp = (ymd: string) => {
-  if (!ymd || ymd === "発売日不明") return "発売日不明";
-  const parts = ymd.split("-");
-  if (parts.length === 3) {
-    return `${parts[0]}年${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日`;
-  }
-  return ymd;
 };
 
 /** 号数や季節表記などを除去して「純粋な誌名」にする */
@@ -83,9 +73,9 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
       
       <header style={controlPanel}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          {/* ✅ 「表示中」のテキストを削除し、大見出しのみに */}
           <div>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>発売日一覧</h1>
+            <div style={{ fontSize: 13, color: "#666", marginTop: 6 }}>表示中｜{monthKey.replace("-", "年")}月</div>
           </div>
           
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -126,18 +116,19 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
         ) : (
           grouped.map(([date, items]) => (
             <div key={date} style={{ marginBottom: 30 }}>
-              {/* ✅ 日付を「2026年3月2日」形式で表示 */}
-              <div style={dateHeader}>{formatDateJp(date)}</div>
+              {/* ✅ 日付を少し大きく（fontSize: 21 に変更） */}
+              <div style={dateHeader}>{date.replace(/-/g, " / ")}</div>
               
               <div className="responsiveGrid">
                 {items.map((m: any, i: number) => {
                   const title = clean(m.タイトル);
                   const isR18 = clean(m.R18) === "1" || clean(m.R18).toLowerCase() === "true";
                   const imgUrl = getHighRes(m.表紙画像);
+                  const detailHref = `/magazine/${encodeURIComponent(m.magazine_id || title)}`;
                   
                   return (
                     <article key={i} style={card}>
-                      <Link href={`/magazine/${encodeURIComponent(m.magazine_id || title)}`} style={{ width: 110, flexShrink: 0, position: "relative", display: "block" }}>
+                      <Link href={detailHref} style={{ width: 110, flexShrink: 0, position: "relative" }}>
                         {imgUrl ? (
                           <img 
                             src={imgUrl} 
@@ -158,20 +149,31 @@ export default function HomeClient({ initialItems }: { initialItems: any[] }) {
 
                       <div style={infoArea}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
-                          <div style={titleStyle}>{title}</div>
+                          <div>
+                            <div style={titleStyle}>{title}</div>
+                            {/* ✅ 価格をタイトルのすぐ下に移動 */}
+                            <div style={priceStyle}>価格：{clean(m.値段) || "—"}</div>
+                          </div>
                           <button onClick={() => fav.toggle(title)} style={starBtn(fav.has(title))}>
                             {fav.has(title) ? "★" : "☆"}
                           </button>
                         </div>
                         
-                        {/* ✅ 出版社を削除し、価格のみに変更 */}
                         <div style={metaStyle}>
-                          <div><b>価　格：</b>{clean(m.値段) || "—"}</div>
+                          <div><b>出版社：</b>{clean(m.出版社) || "—"}</div>
                         </div>
 
-                        <div style={buyRow}>
-                          {m.AmazonURL && <a href={m.AmazonURL} target="_blank" rel="noreferrer" style={btnAmazon}>Amazon</a>}
-                          {m.電子版URL && <a href={m.電子版URL} target="_blank" rel="noreferrer" style={btnDigital}>電子版</a>}
+                        {/* ✅ ボタンエリアを縦に並べる */}
+                        <div style={btnContainer}>
+                          {/* ✅ 懸賞情報はこちらボタンを追加 */}
+                          <Link href={detailHref} style={prizeBtn}>
+                            🎁 懸賞情報はこちら
+                          </Link>
+                          
+                          <div style={buyRow}>
+                            {m.AmazonURL && <a href={m.AmazonURL} target="_blank" rel="noreferrer" style={btnAmazon}>Amazon</a>}
+                            {m.電子版URL && <a href={m.電子版URL} target="_blank" rel="noreferrer" style={btnDigital}>電子版</a>}
+                          </div>
                         </div>
                       </div>
                     </article>
@@ -206,16 +208,18 @@ const btnNav: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, bord
 const monthInput: React.CSSProperties = { padding: "7px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14, fontWeight: 900 };
 const selectBox: React.CSSProperties = { padding: "10px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14, fontWeight: 900, background: "#fff" };
 const searchInput: React.CSSProperties = { flex: 1, minWidth: 150, padding: "10px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14 };
-const dateHeader: React.CSSProperties = { fontSize: 18, fontWeight: 900, marginBottom: 16, paddingBottom: 8, borderBottom: "2px solid #111", color: "#111" };
+const dateHeader: React.CSSProperties = { fontSize: 21, fontWeight: 900, marginBottom: 16, paddingBottom: 8, borderBottom: "2px solid #111", color: "#111" }; // ✅ サイズを18→21へ拡大
 const card: React.CSSProperties = { background: "#fff", borderRadius: 16, padding: 14, display: "flex", gap: 16, boxShadow: "0 4px 15px rgba(0,0,0,0.04)", border: "1px solid #eee" };
-
-// ✅ 画像が枠内に全て収まるように objectFit を "contain" に変更
-const imgStyle: React.CSSProperties = { width: "100%", height: "auto", aspectRatio: "3/4", borderRadius: 8, border: "1px solid #eee", objectFit: "contain", background: "#fff" };
-
+const imgStyle: React.CSSProperties = { width: "100%", height: "auto", aspectRatio: "3/4", borderRadius: 8, border: "1px solid #eee", objectFit: "cover", background: "#f9f9f9" };
 const infoArea: React.CSSProperties = { flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" };
 const titleStyle: React.CSSProperties = { fontSize: 16, fontWeight: 900, lineHeight: 1.4, wordBreak: "break-all", color: "#111" };
-const metaStyle: React.CSSProperties = { fontSize: 13, color: "#555", marginTop: 8, display: "grid", gap: 6 };
-const buyRow: React.CSSProperties = { display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 };
+const priceStyle: React.CSSProperties = { fontSize: 13, fontWeight: 900, color: "#111", marginTop: 4 }; // ✅ 価格のスタイル
+const metaStyle: React.CSSProperties = { fontSize: 12, color: "#555", marginTop: 8, display: "grid", gap: 6 };
+
+const btnContainer: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }; // ✅ ボタン群のコンテナ
+const prizeBtn: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", padding: "8px", background: "#fff4ce", color: "#b37400", borderRadius: 8, fontSize: 12, fontWeight: 900, textDecoration: "none", border: "1px solid #ffdf70" }; // ✅ 懸賞ボタン
+
+const buyRow: React.CSSProperties = { display: "flex", gap: 8, justifyContent: "flex-end" };
 const btnAmazon: React.CSSProperties = { padding: "8px 16px", background: "#111", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 900, textDecoration: "none" };
 const btnDigital: React.CSSProperties = { padding: "8px 16px", background: "#2b6cff", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 900, textDecoration: "none" };
 const r18Tag: React.CSSProperties = { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)", color: "#fff", fontWeight: 900, fontSize: 16, borderRadius: 8, zIndex: 2 };
