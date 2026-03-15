@@ -127,9 +127,9 @@ export default function HomeClient({ initialItems = [] }: { initialItems: Item[]
         {/* 上段：日付操作 */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16, alignItems: "center" }}>
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setMonthKey(addMonths(monthKey, -1))} style={btnNav}>←</button>
+            <button onClick={() => setMonthKey(addMonths(monthKey, -1))} style={btnNav}>←先月</button>
             <button onClick={() => setMonthKey(ymNow())} style={btnNav}>今月</button>
-            <button onClick={() => setMonthKey(addMonths(monthKey, 1))} style={btnNav}>→</button>
+            <button onClick={() => setMonthKey(addMonths(monthKey, 1))} style={btnNav}>来月→</button>
           </div>
           <input type="month" value={monthKey} onChange={e => setMonthKey(e.target.value)} style={monthInput} />
         </div>
@@ -193,7 +193,7 @@ export default function HomeClient({ initialItems = [] }: { initialItems: Item[]
                             {m.電子版URL && <a href={m.電子版URL} target="_blank" rel="noreferrer" style={btnKindle}>Kindle</a>}
                           </div>
                         </div>
-                        <Link href={detailHref} style={prizeBtn}>🎁 懸賞情報</Link>
+                        <Link href={detailHref} style={prizeBtn}> 懸賞情報はこちら</Link>
                       </div>
                     </div>
                   </article>
