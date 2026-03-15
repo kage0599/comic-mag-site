@@ -7,11 +7,12 @@ import { useFavorites } from "./useFavorites";
 // ✅ コミック誌サイトから「漫画サイト」へ飛ばすためのURL
 const MANGA_RELEASE_SITE_URL = "https://manga-tokuten.com";
 
-export default function TopLeftTabs() {
+export default function TopTabs() {
   const pathname = usePathname();
   const fav = useFavorites();
-  // お気に入りの登録数を取得
-  const favCount = fav.list.length;
+  
+  // ✅ お気に入りの件数取得
+  const favCount = fav.list ? fav.list.length : 0;
 
   const isActive = (href: string) => pathname === href;
 
@@ -25,36 +26,10 @@ export default function TopLeftTabs() {
     <a href={href} target="_blank" rel="noreferrer" className="tab extTab">
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
         {label}
-        {/* ✅ 絵文字↗は端末で崩れるのでSVG固定 */}
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-          style={{ flexShrink: 0 }}
-        >
-          <path
-            d="M14 5h5v5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M10 14L19 5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M19 14v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+          <path d="M14 5h5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10 14L19 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M19 14v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
     </a>
@@ -63,13 +38,10 @@ export default function TopLeftTabs() {
   return (
     <nav className="headerFullBar">
       <div className="tabsWrap">
-        {/* ✅ コミック誌サイト用のメニュー構成 */}
         <Tab href="/" label="発売日一覧" />
         <Tab href="/favorites" label={`お気に入り ★${favCount}`} />
         <Tab href="/prizes" label="懸賞一覧" />
         <Tab href="/services" label="全プレ一覧" />
-        
-        {/* ✅ 外部リンク：漫画発売日一覧へ */}
         <ExtTab href={MANGA_RELEASE_SITE_URL} label="漫画発売日一覧" />
       </div>
 
@@ -78,27 +50,27 @@ export default function TopLeftTabs() {
           position: sticky;
           top: 0;
           z-index: 1000;
-          background: #fff; /* 画面端まで白背景 */
+          background: #fff;
           border-bottom: 1px solid #eee;
           width: 100%;
           display: flex;
-          justify-content: center;
-          padding: 12px 0;
+          /* ✅ 中央揃え(center)から左寄せ(flex-start)に変更 */
+          justify-content: flex-start; 
+          padding: 12px 16px; /* ✅ 左寄せした時に端に寄りすぎないよう余白を追加 */
           box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
         .tabsWrap {
           display: flex;
           gap: 8px;
           max-width: 1100px;
+          /* ✅ 左寄せのために width: 100% を維持しつつマージンを調整 */
+          margin: 0 auto; 
           width: 100%;
-          padding: 0 16px;
           overflow-x: auto;
           white-space: nowrap;
           scrollbar-width: none;
         }
-        .tabsWrap::-webkit-scrollbar {
-          display: none; /* スクロールバー非表示 */
-        }
+        .tabsWrap::-webkit-scrollbar { display: none; }
         .tab {
           text-decoration: none;
           padding: 8px 16px;
@@ -110,21 +82,10 @@ export default function TopLeftTabs() {
           border: 1px solid #ddd;
           transition: 0.2s;
         }
-        .tab.active {
-          background: #111;
-          color: #fff;
-          border-color: #111;
-        }
-        .extTab {
-          color: #2b6cff;
-          border-color: #bbd3ff;
-          background: #f4f8ff;
-        }
+        .tab.active { background: #111; color: #fff; border-color: #111; }
+        .extTab { color: #2b6cff; border-color: #bbd3ff; background: #f4f8ff; }
         @media (max-width: 480px) {
-          .tab {
-            padding: 8px 12px;
-            font-size: 13px;
-          }
+          .tab { padding: 8px 12px; font-size: 13px; }
         }
       `}</style>
     </nav>
