@@ -11,7 +11,6 @@ export default function TopLeftTabs() {
   const pathname = usePathname();
   const fav = useFavorites();
   
-  // ✅ カッコ()を外してエラーを解消（安全のため初期値0も設定）
   const favCount = fav.list ? fav.list.length : 0;
 
   const isActive = (href: string) => pathname === href;
@@ -80,15 +79,15 @@ export default function TopLeftTabs() {
           border-bottom: 1px solid #eee;
           width: 100%;
           display: flex;
-          justify-content: flex-start; /* 左寄せ */
+          /* ✅ 親要素レベルで左寄せに固定 */
+          justify-content: flex-start;
           padding: 12px 16px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
         .tabsWrap {
           display: flex;
           gap: 8px;
-          max-width: 1100px;
-          margin: 0 auto; 
+          /* ✅ 中央揃えの制限（max-width や margin: 0 auto）を削除し、常に左端から並べる */
           width: 100%;
           overflow-x: auto;
           white-space: nowrap;
