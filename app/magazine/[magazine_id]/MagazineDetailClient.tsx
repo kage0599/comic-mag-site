@@ -185,7 +185,7 @@ export default function MagazineDetailClient() {
         {/* SEO本文 */}
         <section style={seoText}>
           <p>
-            {title}の最新号に掲載されている懸賞情報やアンケートプレゼント、
+            {title}に掲載されている懸賞情報やアンケートプレゼント、
             応募者全員サービスの内容をまとめています。
             締切日や応募方法、プレゼント内容などを確認できます。
           </p>
@@ -199,7 +199,7 @@ export default function MagazineDetailClient() {
         {/* 懸賞 */}
         <section style={section}>
           <h2 style={h2}>
-            🎁 {title}の懸賞情報
+             {title}の懸賞情報
           </h2>
 
           {myPrizes.length === 0 ? (
@@ -250,7 +250,7 @@ export default function MagazineDetailClient() {
         {/* 全プレ */}
         <section style={section}>
           <h2 style={h2}>
-            ✨ {title}の応募者全員サービス
+             {title}の応募者全員サービス
           </h2>
 
           {myServices.length === 0 ? (
