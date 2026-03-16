@@ -12,14 +12,12 @@ import A8Ad from "@/components/A8Ad";
 基本処理
 ========================= */
 function toDateNum(v?: string) {
-  // 修正: ///g ではなく /\//g が正しい正規表現です
   const s = clean(v).replace(/\//g, "-").slice(0, 10);
   const t = Date.parse(s);
   return Number.isFinite(t) ? t : NaN;
 }
 
 function ymd(v?: string) {
-  // 修正: ///g ではなく /\//g が正しい正規表現です
   return clean(v).replace(/\//g, "-").slice(0, 10);
 }
 
@@ -188,31 +186,42 @@ export default function PrizesPage() {
                       </ul>
                     </details>
 
-                    {/* 応募ボタン */}
-                {clean(p.応募URL) && (
-                  <a
-                    href={clean(p.応募URL)}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={applyBtn}
-                  >
-                    応募はこちらから
-                  </a>
-                )}
-
-                    {/* 購入ボタン */}
+                    {/* ボタン列 */}
                     <div style={buyRow}>
+                      {clean(p.応募URL) && (
+                        <a
+                          href={clean(p.応募URL)}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={applyBtnMini}
+                        >
+                          応募はこちら
+                        </a>
+                      )}
+
                       {mag?.AmazonURL && (
-                        <a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnMiniDark}>
+                        <a
+                          href={mag.AmazonURL}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={btnMiniDark}
+                        >
                           Amazon
                         </a>
                       )}
+
                       {mag?.電子版URL && (
-                        <a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnMiniOrange}>
+                        <a
+                          href={mag.電子版URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={btnMiniOrange}
+                        >
                           Kindle
                         </a>
                       )}
                     </div>
+
                   </article>
                 );
               })}
@@ -278,8 +287,6 @@ const card: React.CSSProperties = {
   flexDirection: "column",
   gap: 12
 };
-
-// --- 以下、途切れていたスタイルと未定義だったスタイルを補完 ---
 const magTag: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 900,
@@ -335,22 +342,23 @@ const prizeList: React.CSSProperties = {
   lineHeight: 1.6,
   color: "#444"
 };
-const applyBtn: React.CSSProperties = {
-  display: "block",
-  textAlign: "center",
-  background: "#ff4d4f",
-  color: "#fff",
-  padding: "12px",
-  borderRadius: 8,
-  fontWeight: 900,
-  textDecoration: "none",
-  marginTop: 4
-};
+
+// --- 追加・修正されたボタンスタイル ---
 const buyRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
+  flexWrap: "wrap", // 画面幅が狭いときに折り返すように追加
   gap: 8,
   marginTop: 4
+};
+const applyBtnMini: React.CSSProperties = {
+  padding: "6px 12px",
+  background: "#ff4d4f",
+  color: "#fff",
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 900,
+  textDecoration: "none"
 };
 const btnMiniDark: React.CSSProperties = {
   padding: "6px 12px",
