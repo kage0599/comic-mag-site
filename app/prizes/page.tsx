@@ -12,12 +12,14 @@ import A8Ad from "@/components/A8Ad";
 基本処理
 ========================= */
 function toDateNum(v?: string) {
+  // 修正: ///g ではなく /\//g が正しい正規表現です
   const s = clean(v).replace(/\//g, "-").slice(0, 10);
   const t = Date.parse(s);
   return Number.isFinite(t) ? t : NaN;
 }
 
 function ymd(v?: string) {
+  // 修正: ///g ではなく /\//g が正しい正規表現です
   return clean(v).replace(/\//g, "-").slice(0, 10);
 }
 
@@ -77,7 +79,8 @@ export default function PrizesPage() {
 
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb", paddingBottom: 60 }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px" }}>
+      {/* ★修正：maxWidthを削除し、classNameを追加 */}
+      <div className="mainContainer" style={{ margin: "0 auto", padding: "16px" }}>
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
             <div>
@@ -133,8 +136,8 @@ export default function PrizesPage() {
 
                 return (
                   <article key={prizeId} style={card}>
-                    {/* ここを修正：alignItemsをcenterにし、gapを追加 */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    {/* ★修正：雑誌名テキスト省略の対応（alignItemsをcenterにし、gapを追加） */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                       <Link
                         href={`/magazine/${encodeURIComponent(clean(mag?.magazine_id || magTitle))}`}
                         style={magTag}
@@ -187,7 +190,7 @@ export default function PrizesPage() {
                       </ul>
                     </details>
 
-                    {/* ボタン列 */}
+                    {/* ボタン列（小さな応募ボタン＋Amazon＋Kindle） */}
                     <div style={buyRow}>
                       {clean(p.応募URL) && (
                         <a
@@ -201,23 +204,13 @@ export default function PrizesPage() {
                       )}
 
                       {mag?.AmazonURL && (
-                        <a
-                          href={mag.AmazonURL}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={btnMiniDark}
-                        >
+                        <a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnMiniDark}>
                           Amazon
                         </a>
                       )}
 
                       {mag?.電子版URL && (
-                        <a
-                          href={mag.電子版URL}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={btnMiniOrange}
-                        >
+                        <a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnMiniOrange}>
                           Kindle
                         </a>
                       )}
@@ -231,6 +224,18 @@ export default function PrizesPage() {
       </div>
 
       <style jsx>{`
+        /* ★修正：全体の横幅調整 */
+        .mainContainer {
+          width: 100%;
+          max-width: 468px; /* スマートフォン時の広告の幅に合わせる */
+        }
+
+        @media (min-width: 768px) {
+          .mainContainer {
+            max-width: 1100px; /* PC時の幅 */
+          }
+        }
+
         .responsiveGrid {
           display: grid;
           grid-template-columns: 1fr;
@@ -248,7 +253,7 @@ export default function PrizesPage() {
 }
 
 /* =========================
-スタイル
+スタイル（React.CSSProperties）
 ========================= */
 const panel: React.CSSProperties = {
   background: "#fff",
@@ -288,7 +293,7 @@ const card: React.CSSProperties = {
   gap: 12
 };
 
-// --- ★修正：雑誌名を1行に抑え、はみ出る分は「...」にする設定 ---
+// --- ★修正：雑誌名テキスト省略の設定を追加 ---
 const magTag: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 900,
@@ -297,15 +302,18 @@ const magTag: React.CSSProperties = {
   padding: "6px 10px",
   borderRadius: 6,
   textDecoration: "none",
-  whiteSpace: "nowrap",       // 1. 改行させない
-  overflow: "hidden",         // 2. はみ出た部分は隠す
-  textOverflow: "ellipsis",   // 3. 隠れた部分を「...」にする
-  minWidth: 0,                // 4. Flex内で縮むのを許可する（必須）
-  display: "block",           // 5. aタグで文字省略を効かせるため
+  whiteSpace: "nowrap",       // 改行させない
+  overflow: "hidden",         // はみ出た部分は隠す
+  textOverflow: "ellipsis",   // 隠れた部分を「...」にする
+  maxWidth: "calc(100% - 100px)", // 適切な最大幅を設定（未応募ボタンの幅を考慮）
+  display: "inline-block", // 省略表示を有効にするために必要
 };
 
-// --- ★修正：ボタンを絶対に縮ませず、改行もさせない設定 ---
+// --- ★修正：ボタンを中央揃え、改行させない、縮ませない設定を追加 ---
 const statusBtn: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
   padding: "6px 12px",
   borderRadius: 8,
   border: "2px solid #111",
@@ -313,15 +321,17 @@ const statusBtn: React.CSSProperties = {
   fontSize: 12,
   cursor: "pointer",
   transition: "all 0.2s",
-  flexShrink: 0,              // 1. 絶対に縮ませない
-  whiteSpace: "nowrap",       // 2. 「未応募」が縦に2行になるのを防ぐ
+  whiteSpace: "nowrap",       // テキストを改行させない
+  flexShrink: 0,              // ボタンを縮ませない
 };
 
+// --- ★修正：懸賞名が長い場合の折り返し設定を追加 ---
 const prizeTitle: React.CSSProperties = {
   fontSize: 18,
   fontWeight: 900,
   lineHeight: 1.4,
-  color: "#111"
+  color: "#111",
+  wordWrap: "break-word", // 長い英単語などで折り返させるため
 };
 const prizeInfo: React.CSSProperties = {
   display: "flex",
@@ -358,7 +368,7 @@ const prizeList: React.CSSProperties = {
 const buyRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
-  flexWrap: "wrap",
+  flexWrap: "wrap", // スマートフォンなどで折り返すように設定
   gap: 8,
   marginTop: 4
 };
