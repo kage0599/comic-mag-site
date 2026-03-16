@@ -25,29 +25,40 @@ export default function MagazineDetailClient({ allData }: { allData: any }) {
   const params = useParams();
   const router = useRouter();
   const fav = useFavorites();
-  const id = clean((params as any)?.magazine_id);
 
-  // allDataがundefinedの場合に備えて「?.」を追加
+  // ★修正1：URLのエンコード（%E9%80...等）を元の日本語にデコードする
+  const rawId = (params as any)?.magazine_id || "";
+  const id = clean(decodeURIComponent(rawId));
+
   const mags = Array.isArray(allData) ? allData : (allData?.mags || []);
   const prizes = allData?.prizes || [];
   const services = allData?.services || [];
 
+  // ★修正1：IDだけでなく、タイトルとも一致するかチェック（より確実にマッチさせるため）
   const mag = useMemo(
-    () => mags.find((m: any) => clean(m.magazine_id) === id),
+    () => mags.find((m: any) => clean(m.magazine_id) === id || clean(m.タイトル) === id),
     [mags, id]
   );
 
-  const myPrizes = useMemo(
-    () => prizes.filter((p: any) => clean(p.magazine_id) === id),
-    [prizes, id]
-  );
+  const myPrizes = useMemo(() => {
+    const magId = clean(mag?.magazine_id);
+    const magTitle = clean(mag?.タイトル);
+    return prizes.filter((p: any) => {
+      const pid = clean(p.magazine_id);
+      return pid === id || (magId && pid === magId) || (magTitle && pid === magTitle);
+    });
+  }, [prizes, id, mag]);
 
-  const myServices = useMemo(
-    () => services.filter((s: any) => clean(s.magazine_id) === id),
-    [services, id]
-  );
+  const myServices = useMemo(() => {
+    const magId = clean(mag?.magazine_id);
+    const magTitle = clean(mag?.タイトル);
+    return services.filter((s: any) => {
+      const sid = clean(s.magazine_id);
+      return sid === id || (magId && sid === magId) || (magTitle && sid === magTitle);
+    });
+  }, [services, id, mag]);
 
-  const title = mag?.タイトル || mag?.雑誌名 || "（雑誌名不明）";
+  const title = mag?.タイトル || mag?.雑誌名 || id || "（雑誌名不明）";
   const isFav = fav.has(title);
 
   return (
@@ -55,7 +66,7 @@ export default function MagazineDetailClient({ allData }: { allData: any }) {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 16 }}>
         <header style={panel}>
           <button onClick={() => router.back()} style={btnBack}>
-            ← 発売日一覧へ戻る
+            ← 戻る
           </button>
 
           <div style={topFlex}>
@@ -85,7 +96,7 @@ export default function MagazineDetailClient({ allData }: { allData: any }) {
 
               <div style={infoGrid}>
                 <div><b>発売日：</b>{mag?.発売日 || "—"}</div>
-                <div><b>出版社：</b>{mag?.出版社 || "—"}</div>
+                {/* ★修正2：出版社を削除しました */}
                 <div><b>定価：</b>{mag?.値段 || "—"}</div>
               </div>
 
@@ -101,12 +112,13 @@ export default function MagazineDetailClient({ allData }: { allData: any }) {
                   </a>
                 )}
 
-                {mag?.KindleURL && (
+                {/* ★修正3：KindleURL ではなく 電子版URL に修正し、オレンジ色に変更 */}
+                {mag?.電子版URL && (
                   <a
-                    href={mag.KindleURL}
+                    href={mag.電子版URL}
                     target="_blank"
                     rel="noreferrer"
-                    style={btnBlue}
+                    style={btnOrange}
                   >
                     Kindle
                   </a>
@@ -127,7 +139,7 @@ export default function MagazineDetailClient({ allData }: { allData: any }) {
 
         {/* 広告 */}
         <div style={{ marginTop: 20 }}>
-          <A8Ad htmlContent={`広告コード`} />
+          <A8Ad htmlContent={`<a href="https://px.a8.net/svt/ejp?a8mat=4AZGCD+9TNIVU+4AHY+5Z6WX" rel="nofollow"><img border="0" width="468" height="60" src="https://www29.a8.net/svt/bgt?aid=260315005594&wid=002&eno=01&mid=s00000020023001004000&mc=1"></a>`} />
         </div>
 
         {/* 懸賞 */}
@@ -291,21 +303,24 @@ const btnRow: React.CSSProperties = {
 };
 
 const btnDark: React.CSSProperties = {
-  padding: "12px 18px",
+  padding: "10px 16px",
   background: "#111",
   color: "#fff",
-  borderRadius: 10,
+  borderRadius: 8,
   textDecoration: "none",
-  fontWeight: 700
+  fontWeight: 700,
+  fontSize: 14
 };
 
-const btnBlue: React.CSSProperties = {
-  padding: "12px 18px",
-  background: "#2b6cff",
+// ★変更：オレンジ色のKindleボタン
+const btnOrange: React.CSSProperties = {
+  padding: "10px 16px",
+  background: "#ff9900",
   color: "#fff",
-  borderRadius: 10,
+  borderRadius: 8,
   textDecoration: "none",
-  fontWeight: 700
+  fontWeight: 700,
+  fontSize: 14
 };
 
 const grid: React.CSSProperties = {
@@ -331,7 +346,6 @@ const meta: React.CSSProperties = {
   color: "#555"
 };
 
-// --- ★不足していた label スタイルを追加 ---
 const label: React.CSSProperties = {
   fontWeight: 900,
   color: "#777",
@@ -353,11 +367,13 @@ const prizeList: React.CSSProperties = {
 const btnApply: React.CSSProperties = {
   display: "inline-block",
   marginTop: 10,
-  padding: "10px 14px",
+  padding: "8px 14px",
+  background: "#ff4d4f",
+  color: "#fff",
   borderRadius: 8,
-  border: "1px solid #ddd",
   textDecoration: "none",
-  fontWeight: 700
+  fontWeight: 700,
+  fontSize: 14
 };
 
 const h2: React.CSSProperties = {
@@ -390,7 +406,8 @@ function starBtn(active: boolean): React.CSSProperties {
     background: active ? "#111" : "#fff",
     color: active ? "#fff" : "#111",
     cursor: "pointer",
-    fontSize: 18
+    fontSize: 18,
+    flexShrink: 0
   };
 }
 
@@ -398,5 +415,6 @@ const btnBack: React.CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  fontWeight: 700
+  fontWeight: 700,
+  padding: "4px 0"
 };
