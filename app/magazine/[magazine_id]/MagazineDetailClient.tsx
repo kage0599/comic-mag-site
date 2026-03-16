@@ -16,7 +16,7 @@ function getHighResCover(url?: string) {
   if (!s) return "";
 
   if (s.includes("amazon.com") || s.includes("m.media-amazon.com")) {
-    return s.replace(/\._S[LX]\d+_\./, "._SL500_."); 
+    return s.replace(/\._S[LX]\d+_\./, "._SL500_.");
   }
 
   if (s.includes("rakuten.co.jp")) {
@@ -26,49 +26,50 @@ function getHighResCover(url?: string) {
   return s;
 }
 
-
 /* =============================
   メイン
 ============================= */
 
-export default function MagazineDetailClient({ allData }: { allData: any }) {
+export default function MagazineDetailClient({
+  allData,
+  magazineId
+}: {
+  allData: any
+  magazineId?: string
+}) {
 
   const params = useParams();
   const router = useRouter();
   const fav = useFavorites();
 
-  const rawId = (params as any)?.magazine_id || "";
+  const rawId = magazineId || (params as any)?.magazine_id || "";
   const id = clean(decodeURIComponent(rawId));
 
   const mags = Array.isArray(allData) ? allData : (allData?.mags || []);
   const prizes = allData?.prizes || [];
   const services = allData?.services || [];
 
-
-
 /* =============================
   雑誌取得
 ============================= */
 
-  const mag = useMemo(() => {
+const mag = useMemo(() => {
 
-    return mags.find((m:any)=>{
+  return mags.find((m:any)=>{
 
-      const mid = clean(m.magazine_id);
-      const title = clean(m.タイトル || m.雑誌名);
+    const mid = clean(m.magazine_id);
+    const title = clean(m.タイトル || m.雑誌名);
 
-      return (
-        mid === id ||
-        title === id ||
-        id.includes(title) ||
-        title.includes(id)
-      );
+    return (
+      mid === id ||
+      title === id ||
+      id.includes(title) ||
+      title.includes(id)
+    );
 
-    });
+  });
 
-  },[mags,id]);
-
-
+},[mags,id]);
 
 /* =============================
   懸賞取得
@@ -95,8 +96,6 @@ const myPrizes = useMemo(()=>{
 
 },[prizes,id,mag]);
 
-
-
 /* =============================
   全プレ取得
 ============================= */
@@ -122,12 +121,8 @@ const myServices = useMemo(()=>{
 
 },[services,id,mag]);
 
-
-
-  const title = mag?.タイトル || mag?.雑誌名 || id;
-  const isFav = fav.has(title);
-
-
+const title = mag?.タイトル || mag?.雑誌名 || id;
+const isFav = fav.has(title);
 
 /* =============================
   UI
@@ -135,9 +130,9 @@ const myServices = useMemo(()=>{
 
 return (
 
-<main style={{minHeight:"100vh",background:"#f6f7fb"}}>
+<main style={main}>
 
-<div style={{maxWidth:1100,margin:"0 auto",padding:16}}>
+<div style={container}>
 
 <header style={panel}>
 
@@ -157,11 +152,7 @@ alt={`${title} 表紙`}
 style={cover}
 />
 
-):(
-
-<div style={coverFallback}/>
-
-)}
+):( <div style={coverFallback}/> )}
 
 </div>
 
@@ -175,13 +166,10 @@ style={cover}
 onClick={()=>fav.toggle(title)}
 style={starBtn(isFav)}
 >
-
 {isFav ? "★" : "☆"}
-
 </button>
 
 </div>
-
 
 <div style={infoGrid}>
 
@@ -190,37 +178,18 @@ style={starBtn(isFav)}
 
 </div>
 
-
 <div style={btnRow}>
 
 {mag?.AmazonURL && (
-
-<a
-href={mag.AmazonURL}
-target="_blank"
-rel="noreferrer"
-style={btnDark}
->
-
+<a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnDark}>
 Amazon
-
 </a>
-
 )}
 
 {mag?.電子版URL && (
-
-<a
-href={mag.電子版URL}
-target="_blank"
-rel="noreferrer"
-style={btnOrange}
->
-
+<a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnOrange}>
 Kindle
-
 </a>
-
 )}
 
 </div>
@@ -231,56 +200,39 @@ Kindle
 
 </header>
 
-
-
 {/* SEO本文 */}
 
 <section style={seoText}>
 
 <p>
-
 {title}の最新号に掲載されている懸賞情報やアンケートプレゼント、
 応募者全員サービスの内容をまとめています。
 締切日や応募方法、プレゼント内容などを確認できます。
-
 </p>
 
 </section>
 
-
-
 {/* 広告 */}
 
 <div style={{marginTop:20}}>
-
 <A8Ad htmlContent={`広告コード`} />
-
 </div>
-
-
 
 {/* 懸賞 */}
 
-<section style={{marginTop:24}}>
+<section style={section}>
 
 <h2 style={h2}>
-
 🎁 {title}の懸賞情報
-
 </h2>
 
 {myPrizes.length === 0 ? (
 
 <div style={emptyBox}>
-
 現在掲載されている懸賞はありません
-
 </div>
 
-):(
-
-
-<div style={grid}>
+):( <div style={grid}>
 
 {myPrizes.map((p:any,idx:number)=>{
 
@@ -291,35 +243,27 @@ return(
 <article key={idx} style={card}>
 
 <div style={prizeTitle}>
-
 {p.懸賞名 || "今月の懸賞"}
-
 </div>
 
 <div style={meta}>
-
 <span style={label}>締切：</span>{p.締切 || "—"}
-
 <br/>
-
 <span style={label}>応募方法：</span>{p.応募方法 || "—"}
-
 </div>
 
 {lines.length > 0 && (
 
-<details>
+<details style={details}>
 
 <summary style={summary}>
 プレゼント内容を見る
 </summary>
 
 <ul style={prizeList}>
-
 {lines.map((t:string,i:number)=>(
 <li key={i}>{t}</li>
 ))}
-
 </ul>
 
 </details>
@@ -327,18 +271,9 @@ return(
 )}
 
 {p.応募URL && (
-
-<a
-href={p.応募URL}
-target="_blank"
-rel="noreferrer"
-style={btnApply}
->
-
+<a href={p.応募URL} target="_blank" rel="noreferrer" style={btnApply}>
 応募はこちら
-
 </a>
-
 )}
 
 </article>
@@ -347,22 +282,16 @@ style={btnApply}
 
 })}
 
-</div>
-
-)}
+</div>)}
 
 </section>
 
-
-
 {/* 全プレ */}
 
-<section style={{marginTop:30}}>
+<section style={section}>
 
 <h2 style={h2}>
-
 ✨ {title}の応募者全員サービス
-
 </h2>
 
 {myServices.length === 0 ? (
@@ -371,42 +300,29 @@ style={btnApply}
 現在応募できる全員サービスはありません
 </div>
 
-):(
-
-
-<div style={grid}>
+):( <div style={grid}>
 
 {myServices.map((s:any,idx:number)=>(
 
 <article key={idx} style={card}>
 
 <div style={prizeTitle}>
-
 {s.内容 || "応募者全員サービス"}
-
 </div>
 
 <div style={meta}>
-
 <span style={label}>締切：</span>{s.締切 || "—"}
-
 <br/>
-
 <span style={label}>応募方法：</span>{s.応募方法 || "—"}
-
 </div>
 
 </article>
 
 ))}
 
-</div>
-
-)}
+</div>)}
 
 </section>
-
-
 
 </div>
 
@@ -416,10 +332,20 @@ style={btnApply}
 
 }
 
-
 /* =============================
   STYLE
 ============================= */
+
+const main:React.CSSProperties={
+minHeight:"100vh",
+background:"#f6f7fb"
+}
+
+const container:React.CSSProperties={
+maxWidth:1100,
+margin:"0 auto",
+padding:16
+}
 
 const panel:React.CSSProperties={
 background:"#fff",
@@ -472,7 +398,8 @@ gap:6
 const btnRow:React.CSSProperties={
 display:"flex",
 gap:10,
-marginTop:14
+marginTop:14,
+flexWrap:"wrap"
 }
 
 const btnDark:React.CSSProperties={
@@ -491,33 +418,43 @@ borderRadius:8,
 textDecoration:"none"
 }
 
+const section:React.CSSProperties={
+marginTop:28
+}
+
 const grid:React.CSSProperties={
 display:"grid",
-gap:16
+gap:20
 }
 
 const card:React.CSSProperties={
 background:"#fff",
-padding:16,
+padding:18,
 borderRadius:14,
 border:"1px solid #eee"
 }
 
 const prizeTitle:React.CSSProperties={
-fontWeight:900
+fontWeight:900,
+fontSize:16
 }
 
 const meta:React.CSSProperties={
-marginTop:6
+marginTop:6,
+lineHeight:1.6
 }
 
 const label:React.CSSProperties={
 fontWeight:900
 }
 
+const details:React.CSSProperties={
+marginTop:10
+}
+
 const summary:React.CSSProperties={
 cursor:"pointer",
-marginTop:8
+fontWeight:700
 }
 
 const prizeList:React.CSSProperties={
@@ -527,22 +464,22 @@ paddingLeft:18
 
 const btnApply:React.CSSProperties={
 display:"inline-block",
-marginTop:10,
+marginTop:12,
 background:"#ff4d4f",
 color:"#fff",
-padding:"8px 14px",
+padding:"9px 14px",
 borderRadius:8,
 textDecoration:"none"
 }
 
 const h2:React.CSSProperties={
-fontSize:18,
+fontSize:20,
 fontWeight:900
 }
 
 const seoText:React.CSSProperties={
-marginTop:16,
-lineHeight:1.8
+marginTop:18,
+lineHeight:1.9
 }
 
 const emptyBox:React.CSSProperties={
@@ -562,7 +499,8 @@ borderRadius:"50%",
 border:"1px solid #ddd",
 background:active?"#111":"#fff",
 color:active?"#fff":"#111",
-cursor:"pointer"
+cursor:"pointer",
+fontSize:18
 }
 
 }
@@ -570,5 +508,6 @@ cursor:"pointer"
 const btnBack:React.CSSProperties={
 background:"none",
 border:"none",
-cursor:"pointer"
+cursor:"pointer",
+fontSize:14
 }
