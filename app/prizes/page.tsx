@@ -133,7 +133,8 @@ export default function PrizesPage() {
 
                 return (
                   <article key={prizeId} style={card}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    {/* ここを修正：alignItemsをcenterにし、gapを追加 */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                       <Link
                         href={`/magazine/${encodeURIComponent(clean(mag?.magazine_id || magTitle))}`}
                         style={magTag}
@@ -221,7 +222,6 @@ export default function PrizesPage() {
                         </a>
                       )}
                     </div>
-
                   </article>
                 );
               })}
@@ -287,6 +287,8 @@ const card: React.CSSProperties = {
   flexDirection: "column",
   gap: 12
 };
+
+// --- ★修正：雑誌名を1行に抑え、はみ出る分は「...」にする設定 ---
 const magTag: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 900,
@@ -294,8 +296,15 @@ const magTag: React.CSSProperties = {
   color: "#333",
   padding: "6px 10px",
   borderRadius: 6,
-  textDecoration: "none"
+  textDecoration: "none",
+  whiteSpace: "nowrap",       // 1. 改行させない
+  overflow: "hidden",         // 2. はみ出た部分は隠す
+  textOverflow: "ellipsis",   // 3. 隠れた部分を「...」にする
+  minWidth: 0,                // 4. Flex内で縮むのを許可する（必須）
+  display: "block",           // 5. aタグで文字省略を効かせるため
 };
+
+// --- ★修正：ボタンを絶対に縮ませず、改行もさせない設定 ---
 const statusBtn: React.CSSProperties = {
   padding: "6px 12px",
   borderRadius: 8,
@@ -303,8 +312,11 @@ const statusBtn: React.CSSProperties = {
   fontWeight: 900,
   fontSize: 12,
   cursor: "pointer",
-  transition: "all 0.2s"
+  transition: "all 0.2s",
+  flexShrink: 0,              // 1. 絶対に縮ませない
+  whiteSpace: "nowrap",       // 2. 「未応募」が縦に2行になるのを防ぐ
 };
+
 const prizeTitle: React.CSSProperties = {
   fontSize: 18,
   fontWeight: 900,
@@ -343,11 +355,10 @@ const prizeList: React.CSSProperties = {
   color: "#444"
 };
 
-// --- 追加・修正されたボタンスタイル ---
 const buyRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
-  flexWrap: "wrap", // 画面幅が狭いときに折り返すように追加
+  flexWrap: "wrap",
   gap: 8,
   marginTop: 4
 };
