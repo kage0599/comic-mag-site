@@ -51,7 +51,6 @@ export default function MagazineDetailClient() {
   const mag = useMemo(() => {
     return mags.find((m: any) => {
       const mid = clean(m.magazine_id);
-      // ★修正: m.雑誌名 を削除しました
       const title = clean(m.タイトル);
 
       return (
@@ -68,7 +67,6 @@ export default function MagazineDetailClient() {
   ============================= */
   const myPrizes = useMemo(() => {
     const magId = clean(mag?.magazine_id);
-    // ★修正: mag?.雑誌名 を削除しました
     const magTitle = clean(mag?.タイトル);
 
     return prizes.filter((p: any) => {
@@ -89,7 +87,6 @@ export default function MagazineDetailClient() {
   ============================= */
   const myServices = useMemo(() => {
     const magId = clean(mag?.magazine_id);
-    // ★修正: mag?.雑誌名 を削除しました
     const magTitle = clean(mag?.タイトル);
 
     return services.filter((s: any) => {
@@ -105,7 +102,6 @@ export default function MagazineDetailClient() {
     });
   }, [services, id, mag]);
 
-  // ★修正: mag?.雑誌名 を削除しました
   const title = mag?.タイトル || id;
   const isFav = fav.has(title);
 
@@ -136,22 +132,23 @@ export default function MagazineDetailClient() {
             ← 戻る
           </button>
 
-          <div style={topFlex}>
-            <div style={coverWrap}>
+          {/* ★修正: クラスを使ってレスポンシブなレイアウトに変更 */}
+          <div className="topArea">
+            <div className="coverWrap">
               {mag?.表紙画像 ? (
                 <img
                   src={getHighResCover(mag.表紙画像)}
                   alt={`${title} 表紙`}
-                  style={cover}
+                  className="coverImage"
                 />
               ) : (
-                <div style={coverFallback} />
+                <div className="coverFallback" />
               )}
             </div>
 
-            <div style={{ flex: 1 }}>
-              <div style={titleRow}>
-                <h1 style={h1}>{title}</h1>
+            <div className="infoWrap">
+              <div className="titleRow">
+                <h1 className="magTitle">{title}</h1>
                 <button
                   onClick={() => fav.toggle(title)}
                   style={starBtn(isFav)}
@@ -165,15 +162,14 @@ export default function MagazineDetailClient() {
                 <div><b>定価：</b>{mag?.値段 || "—"}</div>
               </div>
 
-              <div style={btnRow}>
+              <div className="buyBtns">
                 {mag?.AmazonURL && (
-                  <a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnDark}>
+                  <a href={mag.AmazonURL} target="_blank" rel="noreferrer" className="buyBtn amazonBtn">
                     Amazon
                   </a>
                 )}
-
                 {mag?.電子版URL && (
-                  <a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnOrange}>
+                  <a href={mag.電子版URL} target="_blank" rel="noreferrer" className="buyBtn kindleBtn">
                     Kindle
                   </a>
                 )}
@@ -185,7 +181,7 @@ export default function MagazineDetailClient() {
         {/* SEO本文 */}
         <section style={seoText}>
           <p>
-            {title}に掲載されている懸賞情報やアンケートプレゼント、
+            {title}に掲載されている懸賞情報やアンケート、
             応募者全員サービスの内容をまとめています。
             締切日や応募方法、プレゼント内容などを確認できます。
           </p>
@@ -276,51 +272,129 @@ export default function MagazineDetailClient() {
           )}
         </section>
       </div>
+
+      {/* ★ スマホとPCで見た目を切り替えるCSS */}
+      <style jsx>{`
+        .topArea {
+          display: flex;
+          gap: 16px;
+          margin-top: 16px;
+        }
+        .coverWrap {
+          width: 110px; /* スマホでは表紙画像を少し小さくして右側のスペースを確保 */
+          flex-shrink: 0;
+        }
+        .coverImage {
+          width: 100%;
+          border-radius: 8px;
+          object-fit: contain;
+          border: 1px solid #eee;
+        }
+        .coverFallback {
+          width: 100%;
+          height: 160px;
+          background: #eee;
+          border-radius: 8px;
+        }
+        .infoWrap {
+          flex: 1;
+          min-width: 0;
+        }
+        .titleRow {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 8px;
+        }
+        .magTitle {
+          margin: 0;
+          font-size: 18px; /* スマホで読みやすいサイズに */
+          font-weight: 900;
+          line-height: 1.4;
+        }
+        .buyBtns {
+          display: flex;
+          gap: 8px;
+          margin-top: 16px;
+        }
+        .buyBtn {
+          flex: 1; /* 横並びで均等に広げる */
+          text-align: center;
+          padding: 10px 4px;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 13px;
+          text-decoration: none;
+          color: #fff;
+        }
+        .amazonBtn {
+          background: #111;
+        }
+        .kindleBtn {
+          background: #ff9900;
+        }
+
+        /* PCやタブレットなどの大きな画面の時のスタイル */
+        @media (min-width: 640px) {
+          .topArea {
+            gap: 24px;
+          }
+          .coverWrap {
+            width: 160px;
+          }
+          .coverFallback {
+            height: 220px;
+          }
+          .magTitle {
+            font-size: 24px;
+          }
+          .buyBtn {
+            flex: none; /* PCでは幅を広げすぎない */
+            padding: 12px 24px;
+            font-size: 14px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
 
 /* =============================
-  STYLE
+  STYLE (固定のものはそのまま残す)
 ============================= */
 const main: React.CSSProperties = { minHeight: "100vh", background: "#f6f7fb" };
 const container: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: 16 };
 const panel: React.CSSProperties = { background: "#fff", borderRadius: 16, padding: 18, border: "1px solid #eee" };
-const topFlex: React.CSSProperties = { display: "flex", gap: 20, flexWrap: "wrap", marginTop: 14 };
-const coverWrap: React.CSSProperties = { width: 160 };
-const cover: React.CSSProperties = { width: "100%", borderRadius: 10, objectFit: "contain" };
-const coverFallback: React.CSSProperties = { width: "100%", height: 220, background: "#eee", borderRadius: 10 };
-const titleRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center" };
-const h1: React.CSSProperties = { fontSize: 24, fontWeight: 900 };
-const infoGrid: React.CSSProperties = { marginTop: 10, display: "grid", gap: 6 };
-const btnRow: React.CSSProperties = { display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" };
-const btnDark: React.CSSProperties = { background: "#111", color: "#fff", padding: "10px 16px", borderRadius: 8, textDecoration: "none" };
-const btnOrange: React.CSSProperties = { background: "#ff9900", color: "#fff", padding: "10px 16px", borderRadius: 8, textDecoration: "none" };
+const infoGrid: React.CSSProperties = { marginTop: 12, display: "grid", gap: 6, fontSize: 14, color: "#444" };
 const section: React.CSSProperties = { marginTop: 28 };
 const grid: React.CSSProperties = { display: "grid", gap: 20 };
 const card: React.CSSProperties = { background: "#fff", padding: 18, borderRadius: 14, border: "1px solid #eee" };
 const prizeTitle: React.CSSProperties = { fontWeight: 900, fontSize: 16 };
-const meta: React.CSSProperties = { marginTop: 6, lineHeight: 1.6 };
-const label: React.CSSProperties = { fontWeight: 900 };
-const details: React.CSSProperties = { marginTop: 10 };
-const summary: React.CSSProperties = { cursor: "pointer", fontWeight: 700 };
-const prizeList: React.CSSProperties = { marginTop: 8, paddingLeft: 18 };
-const btnApply: React.CSSProperties = { display: "inline-block", marginTop: 12, background: "#ff4d4f", color: "#fff", padding: "9px 14px", borderRadius: 8, textDecoration: "none" };
+const meta: React.CSSProperties = { marginTop: 8, lineHeight: 1.6 };
+const label: React.CSSProperties = { fontWeight: 900, color: "#666" };
+const details: React.CSSProperties = { marginTop: 12 };
+const summary: React.CSSProperties = { cursor: "pointer", fontWeight: 700, outline: "none" };
+const prizeList: React.CSSProperties = { marginTop: 8, paddingLeft: 18, color: "#444", lineHeight: 1.6 };
+const btnApply: React.CSSProperties = { display: "inline-block", marginTop: 14, background: "#ff4d4f", color: "#fff", padding: "10px 16px", borderRadius: 8, textDecoration: "none", fontWeight: 700, fontSize: 14 };
 const h2: React.CSSProperties = { fontSize: 20, fontWeight: 900 };
-const seoText: React.CSSProperties = { marginTop: 18, lineHeight: 1.9 };
-const emptyBox: React.CSSProperties = { padding: 16, background: "#fff", borderRadius: 10, border: "1px solid #eee", color: "#777" };
+const seoText: React.CSSProperties = { marginTop: 18, lineHeight: 1.9, color: "#555", fontSize: 14 };
+const emptyBox: React.CSSProperties = { padding: 16, background: "#fff", borderRadius: 10, border: "1px solid #eee", color: "#777", textAlign: "center" };
 
 function starBtn(active: boolean): React.CSSProperties {
   return {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: "50%",
     border: "1px solid #ddd",
     background: active ? "#111" : "#fff",
     color: active ? "#fff" : "#111",
     cursor: "pointer",
-    fontSize: 18
+    fontSize: 18,
+    flexShrink: 0, /* タイトルが長くなってもボタンを潰さない */
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
   };
 }
 
-const btnBack: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontSize: 14 };
+const btnBack: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "#2b6cff", padding: "0 0 8px 0" };
