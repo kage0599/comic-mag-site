@@ -64,7 +64,7 @@ export default function RootLayout({
           </div>
 
           <p style={{ fontSize: 11, marginTop: 10, opacity: 0.6, lineHeight: 1.6 }}>
-            当サイトは雑誌の発売情報や懸賞情報をまとめたファンサイトです。<br/>
+            当サイトは雑誌の発売情報や懸賞情報をまとめたサイトです。<br/>
             ※一部作品には18歳以上向けコンテンツが含まれます。
           </p>
         </footer>

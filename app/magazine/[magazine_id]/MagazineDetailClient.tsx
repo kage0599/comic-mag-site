@@ -9,9 +9,7 @@ import { clean, splitByComma } from "../../../components/text";
 /* =============================
   表紙高画質化
 ============================= */
-
 function getHighResCover(url?: string) {
-
   const s = clean(url);
   if (!s) return "";
 
@@ -29,7 +27,6 @@ function getHighResCover(url?: string) {
 /* =============================
   メイン
 ============================= */
-
 export default function MagazineDetailClient({
   allData,
   magazineId
@@ -37,7 +34,6 @@ export default function MagazineDetailClient({
   allData: any
   magazineId?: string
 }) {
-
   const params = useParams();
   const router = useRouter();
   const fav = useFavorites();
@@ -49,465 +45,239 @@ export default function MagazineDetailClient({
   const prizes = allData?.prizes || [];
   const services = allData?.services || [];
 
-/* =============================
-  雑誌取得
-============================= */
-
-const mag = useMemo(() => {
-
-  return mags.find((m:any)=>{
-
-    const mid = clean(m.magazine_id);
-    const title = clean(m.タイトル || m.雑誌名);
-
-    return (
-      mid === id ||
-      title === id ||
-      id.includes(title) ||
-      title.includes(id)
-    );
-
-  });
-
-},[mags,id]);
-
-/* =============================
-  懸賞取得
-============================= */
-
-const myPrizes = useMemo(()=>{
-
-  const magId = clean(mag?.magazine_id);
-  const magTitle = clean(mag?.タイトル || mag?.雑誌名);
-
-  return prizes.filter((p:any)=>{
-
-    const pid = clean(p.magazine_id);
-
-    return (
-      pid === id ||
-      pid === magId ||
-      pid === magTitle ||
-      pid.includes(magTitle) ||
-      magTitle?.includes(pid)
-    );
-
-  });
-
-},[prizes,id,mag]);
-
-/* =============================
-  全プレ取得
-============================= */
-
-const myServices = useMemo(()=>{
-
-  const magId = clean(mag?.magazine_id);
-  const magTitle = clean(mag?.タイトル || mag?.雑誌名);
-
-  return services.filter((s:any)=>{
-
-    const sid = clean(s.magazine_id);
-
-    return (
-      sid === id ||
-      sid === magId ||
-      sid === magTitle ||
-      sid.includes(magTitle) ||
-      magTitle?.includes(sid)
-    );
-
-  });
-
-},[services,id,mag]);
-
-const title = mag?.タイトル || mag?.雑誌名 || id;
-const isFav = fav.has(title);
-
-/* =============================
-  UI
-============================= */
-
-return (
-
-<main style={main}>
-
-<div style={container}>
-
-<header style={panel}>
-
-<button onClick={()=>router.back()} style={btnBack}>
-← 戻る
-</button>
-
-<div style={topFlex}>
-
-<div style={coverWrap}>
-
-{mag?.表紙画像 ? (
-
-<img
-src={getHighResCover(mag.表紙画像)}
-alt={`${title} 表紙`}
-style={cover}
-/>
-
-):( <div style={coverFallback}/> )}
-
-</div>
-
-<div style={{flex:1}}>
-
-<div style={titleRow}>
-
-<h1 style={h1}>{title}</h1>
-
-<button
-onClick={()=>fav.toggle(title)}
-style={starBtn(isFav)}
->
-{isFav ? "★" : "☆"}
-</button>
-
-</div>
-
-<div style={infoGrid}>
-
-<div><b>発売日：</b>{mag?.発売日 || "—"}</div>
-<div><b>定価：</b>{mag?.値段 || "—"}</div>
-
-</div>
-
-<div style={btnRow}>
-
-{mag?.AmazonURL && (
-<a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnDark}>
-Amazon
-</a>
-)}
-
-{mag?.電子版URL && (
-<a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnOrange}>
-Kindle
-</a>
-)}
-
-</div>
-
-</div>
-
-</div>
-
-</header>
-
-{/* SEO本文 */}
-
-<section style={seoText}>
-
-<p>
-{title}の最新号に掲載されている懸賞情報やアンケートプレゼント、
-応募者全員サービスの内容をまとめています。
-締切日や応募方法、プレゼント内容などを確認できます。
-</p>
-
-</section>
-
-{/* 広告 */}
-
-<div style={{marginTop:20}}>
-<A8Ad htmlContent={`広告コード`} />
-</div>
-
-{/* 懸賞 */}
-
-<section style={section}>
-
-<h2 style={h2}>
-🎁 {title}の懸賞情報
-</h2>
-
-{myPrizes.length === 0 ? (
-
-<div style={emptyBox}>
-現在掲載されている懸賞はありません
-</div>
-
-):( <div style={grid}>
-
-{myPrizes.map((p:any,idx:number)=>{
-
-const lines = splitByComma(p.内容);
-
-return(
-
-<article key={idx} style={card}>
-
-<div style={prizeTitle}>
-{p.懸賞名 || "今月の懸賞"}
-</div>
-
-<div style={meta}>
-<span style={label}>締切：</span>{p.締切 || "—"}
-<br/>
-<span style={label}>応募方法：</span>{p.応募方法 || "—"}
-</div>
-
-{lines.length > 0 && (
-
-<details style={details}>
-
-<summary style={summary}>
-プレゼント内容を見る
-</summary>
-
-<ul style={prizeList}>
-{lines.map((t:string,i:number)=>(
-<li key={i}>{t}</li>
-))}
-</ul>
-
-</details>
-
-)}
-
-{p.応募URL && (
-<a href={p.応募URL} target="_blank" rel="noreferrer" style={btnApply}>
-応募はこちら
-</a>
-)}
-
-</article>
-
-);
-
-})}
-
-</div>)}
-
-</section>
-
-{/* 全プレ */}
-
-<section style={section}>
-
-<h2 style={h2}>
-✨ {title}の応募者全員サービス
-</h2>
-
-{myServices.length === 0 ? (
-
-<div style={emptyBox}>
-現在応募できる全員サービスはありません
-</div>
-
-):( <div style={grid}>
-
-{myServices.map((s:any,idx:number)=>(
-
-<article key={idx} style={card}>
-
-<div style={prizeTitle}>
-{s.内容 || "応募者全員サービス"}
-</div>
-
-<div style={meta}>
-<span style={label}>締切：</span>{s.締切 || "—"}
-<br/>
-<span style={label}>応募方法：</span>{s.応募方法 || "—"}
-</div>
-
-</article>
-
-))}
-
-</div>)}
-
-</section>
-
-</div>
-
-</main>
-
-);
-
+  /* =============================
+    雑誌取得
+  ============================= */
+  const mag = useMemo(() => {
+    return mags.find((m: any) => {
+      const mid = clean(m.magazine_id);
+      const title = clean(m.タイトル || m.雑誌名);
+
+      return (
+        mid === id ||
+        title === id ||
+        id.includes(title) ||
+        title.includes(id)
+      );
+    });
+  }, [mags, id]);
+
+  /* =============================
+    懸賞取得
+  ============================= */
+  const myPrizes = useMemo(() => {
+    const magId = clean(mag?.magazine_id);
+    const magTitle = clean(mag?.タイトル || mag?.雑誌名);
+
+    return prizes.filter((p: any) => {
+      const pid = clean(p.magazine_id);
+
+      return (
+        pid === id ||
+        pid === magId ||
+        pid === magTitle ||
+        pid.includes(magTitle) ||
+        magTitle?.includes(pid)
+      );
+    });
+  }, [prizes, id, mag]);
+
+  /* =============================
+    全プレ取得
+  ============================= */
+  const myServices = useMemo(() => {
+    const magId = clean(mag?.magazine_id);
+    const magTitle = clean(mag?.タイトル || mag?.雑誌名);
+
+    return services.filter((s: any) => {
+      const sid = clean(s.magazine_id);
+
+      return (
+        sid === id ||
+        sid === magId ||
+        sid === magTitle ||
+        sid.includes(magTitle) ||
+        magTitle?.includes(sid)
+      );
+    });
+  }, [services, id, mag]);
+
+  const title = mag?.タイトル || mag?.雑誌名 || id;
+  const isFav = fav.has(title);
+
+  /* =============================
+    UI
+  ============================= */
+  return (
+    <main style={main}>
+      <div style={container}>
+        <header style={panel}>
+          <button onClick={() => router.back()} style={btnBack}>
+            ← 戻る
+          </button>
+
+          <div style={topFlex}>
+            <div style={coverWrap}>
+              {mag?.表紙画像 ? (
+                <img
+                  src={getHighResCover(mag.表紙画像)}
+                  alt={`${title} 表紙`}
+                  style={cover}
+                />
+              ) : (
+                <div style={coverFallback} />
+              )}
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <div style={titleRow}>
+                <h1 style={h1}>{title}</h1>
+                <button
+                  onClick={() => fav.toggle(title)}
+                  style={starBtn(isFav)}
+                >
+                  {isFav ? "★" : "☆"}
+                </button>
+              </div>
+
+              <div style={infoGrid}>
+                <div><b>発売日：</b>{mag?.発売日 || "—"}</div>
+                <div><b>定価：</b>{mag?.値段 || "—"}</div>
+              </div>
+
+              <div style={btnRow}>
+                {mag?.AmazonURL && (
+                  <a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnDark}>
+                    Amazon
+                  </a>
+                )}
+                {mag?.電子版URL && (
+                  <a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnOrange}>
+                    Kindle
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* SEO本文 */}
+        <section style={seoText}>
+          <p>
+            {title}の最新号に掲載されている懸賞情報やアンケートプレゼント、
+            応募者全員サービスの内容をまとめています。
+            締切日や応募方法、プレゼント内容などを確認できます。
+          </p>
+        </section>
+
+        {/* 広告 */}
+        <div style={{ marginTop: 20 }}>
+          <A8Ad htmlContent={`<a href="https://px.a8.net/svt/ejp?a8mat=4AZGCD+9TNIVU+4AHY+5Z6WX" rel="nofollow"><img border="0" width="468" height="60" src="https://www29.a8.net/svt/bgt?aid=260315005594&wid=002&eno=01&mid=s00000020023001004000&mc=1"></a>`} />
+        </div>
+
+        {/* 懸賞 */}
+        <section style={section}>
+          <h2 style={h2}> {title}の懸賞情報</h2>
+          {myPrizes.length === 0 ? (
+            <div style={emptyBox}>現在掲載されている懸賞はありません</div>
+          ) : (
+            <div style={grid}>
+              {myPrizes.map((p: any, idx: number) => {
+                const lines = splitByComma(p.内容);
+                return (
+                  <article key={idx} style={card}>
+                    <div style={prizeTitle}>{p.懸賞名 || "今月の懸賞"}</div>
+                    <div style={meta}>
+                      <span style={label}>締切：</span>{p.締切 || "—"}<br />
+                      <span style={label}>応募方法：</span>{p.応募方法 || "—"}
+                    </div>
+                    {lines.length > 0 && (
+                      <details style={details}>
+                        <summary style={summary}>プレゼント内容を見る</summary>
+                        <ul style={prizeList}>
+                          {lines.map((t: string, i: number) => (
+                            <li key={i}>{t}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                    {p.応募URL && (
+                      <a href={p.応募URL} target="_blank" rel="noreferrer" style={btnApply}>
+                        応募はこちら
+                      </a>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* 全プレ */}
+        <section style={section}>
+          <h2 style={h2}> {title}の応募者全員サービス</h2>
+          {myServices.length === 0 ? (
+            <div style={emptyBox}>現在応募できる全員サービスはありません</div>
+          ) : (
+            <div style={grid}>
+              {myServices.map((s: any, idx: number) => (
+                <article key={idx} style={card}>
+                  <div style={prizeTitle}>{s.内容 || "応募者全員サービス"}</div>
+                  <div style={meta}>
+                    <span style={label}>締切：</span>{s.締切 || "—"}<br />
+                    <span style={label}>応募方法：</span>{s.応募方法 || "—"}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
 }
 
 /* =============================
   STYLE
 ============================= */
+const main: React.CSSProperties = { minHeight: "100vh", background: "#f6f7fb" };
+const container: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: 16 };
+const panel: React.CSSProperties = { background: "#fff", borderRadius: 16, padding: 18, border: "1px solid #eee" };
+const topFlex: React.CSSProperties = { display: "flex", gap: 20, flexWrap: "wrap", marginTop: 14 };
+const coverWrap: React.CSSProperties = { width: 160 };
+const cover: React.CSSProperties = { width: "100%", borderRadius: 10, objectFit: "contain" };
+const coverFallback: React.CSSProperties = { width: "100%", height: 220, background: "#eee", borderRadius: 10 };
+const titleRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center" };
+const h1: React.CSSProperties = { fontSize: 24, fontWeight: 900 };
+const infoGrid: React.CSSProperties = { marginTop: 10, display: "grid", gap: 6 };
+const btnRow: React.CSSProperties = { display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" };
+const btnDark: React.CSSProperties = { background: "#111", color: "#fff", padding: "10px 16px", borderRadius: 8, textDecoration: "none" };
+const btnOrange: React.CSSProperties = { background: "#ff9900", color: "#fff", padding: "10px 16px", borderRadius: 8, textDecoration: "none" };
+const section: React.CSSProperties = { marginTop: 28 };
+const grid: React.CSSProperties = { display: "grid", gap: 20 };
+const card: React.CSSProperties = { background: "#fff", padding: 18, borderRadius: 14, border: "1px solid #eee" };
+const prizeTitle: React.CSSProperties = { fontWeight: 900, fontSize: 16 };
+const meta: React.CSSProperties = { marginTop: 6, lineHeight: 1.6 };
+const label: React.CSSProperties = { fontWeight: 900 };
+const details: React.CSSProperties = { marginTop: 10 };
+const summary: React.CSSProperties = { cursor: "pointer", fontWeight: 700 };
+const prizeList: React.CSSProperties = { marginTop: 8, paddingLeft: 18 };
+const btnApply: React.CSSProperties = { display: "inline-block", marginTop: 12, background: "#ff4d4f", color: "#fff", padding: "9px 14px", borderRadius: 8, textDecoration: "none" };
+const h2: React.CSSProperties = { fontSize: 20, fontWeight: 900 };
+const seoText: React.CSSProperties = { marginTop: 18, lineHeight: 1.9 };
+const emptyBox: React.CSSProperties = { padding: 16, background: "#fff", borderRadius: 10, border: "1px solid #eee", color: "#777" };
 
-const main:React.CSSProperties={
-minHeight:"100vh",
-background:"#f6f7fb"
+function starBtn(active: boolean): React.CSSProperties {
+  return {
+    width: 42,
+    height: 42,
+    borderRadius: "50%",
+    border: "1px solid #ddd",
+    background: active ? "#111" : "#fff",
+    color: active ? "#fff" : "#111",
+    cursor: "pointer",
+    fontSize: 18
+  };
 }
 
-const container:React.CSSProperties={
-maxWidth:1100,
-margin:"0 auto",
-padding:16
-}
-
-const panel:React.CSSProperties={
-background:"#fff",
-borderRadius:16,
-padding:18,
-border:"1px solid #eee"
-}
-
-const topFlex:React.CSSProperties={
-display:"flex",
-gap:20,
-flexWrap:"wrap",
-marginTop:14
-}
-
-const coverWrap:React.CSSProperties={
-width:160
-}
-
-const cover:React.CSSProperties={
-width:"100%",
-borderRadius:10,
-objectFit:"contain"
-}
-
-const coverFallback:React.CSSProperties={
-width:"100%",
-height:220,
-background:"#eee",
-borderRadius:10
-}
-
-const titleRow:React.CSSProperties={
-display:"flex",
-justifyContent:"space-between",
-alignItems:"center"
-}
-
-const h1:React.CSSProperties={
-fontSize:24,
-fontWeight:900
-}
-
-const infoGrid:React.CSSProperties={
-marginTop:10,
-display:"grid",
-gap:6
-}
-
-const btnRow:React.CSSProperties={
-display:"flex",
-gap:10,
-marginTop:14,
-flexWrap:"wrap"
-}
-
-const btnDark:React.CSSProperties={
-background:"#111",
-color:"#fff",
-padding:"10px 16px",
-borderRadius:8,
-textDecoration:"none"
-}
-
-const btnOrange:React.CSSProperties={
-background:"#ff9900",
-color:"#fff",
-padding:"10px 16px",
-borderRadius:8,
-textDecoration:"none"
-}
-
-const section:React.CSSProperties={
-marginTop:28
-}
-
-const grid:React.CSSProperties={
-display:"grid",
-gap:20
-}
-
-const card:React.CSSProperties={
-background:"#fff",
-padding:18,
-borderRadius:14,
-border:"1px solid #eee"
-}
-
-const prizeTitle:React.CSSProperties={
-fontWeight:900,
-fontSize:16
-}
-
-const meta:React.CSSProperties={
-marginTop:6,
-lineHeight:1.6
-}
-
-const label:React.CSSProperties={
-fontWeight:900
-}
-
-const details:React.CSSProperties={
-marginTop:10
-}
-
-const summary:React.CSSProperties={
-cursor:"pointer",
-fontWeight:700
-}
-
-const prizeList:React.CSSProperties={
-marginTop:8,
-paddingLeft:18
-}
-
-const btnApply:React.CSSProperties={
-display:"inline-block",
-marginTop:12,
-background:"#ff4d4f",
-color:"#fff",
-padding:"9px 14px",
-borderRadius:8,
-textDecoration:"none"
-}
-
-const h2:React.CSSProperties={
-fontSize:20,
-fontWeight:900
-}
-
-const seoText:React.CSSProperties={
-marginTop:18,
-lineHeight:1.9
-}
-
-const emptyBox:React.CSSProperties={
-padding:16,
-background:"#fff",
-borderRadius:10,
-border:"1px solid #eee",
-color:"#777"
-}
-
-function starBtn(active:boolean):React.CSSProperties{
-
-return{
-width:42,
-height:42,
-borderRadius:"50%",
-border:"1px solid #ddd",
-background:active?"#111":"#fff",
-color:active?"#fff":"#111",
-cursor:"pointer",
-fontSize:18
-}
-
-}
-
-const btnBack:React.CSSProperties={
-background:"none",
-border:"none",
-cursor:"pointer",
-fontSize:14
-}
+const btnBack: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontSize: 14 };
