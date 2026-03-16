@@ -66,6 +66,7 @@ export default function FavoritesPage() {
         </div>
 
         <div style={toolBar}>
+
           <input
             placeholder="お気に入り検索"
             value={query}
@@ -77,6 +78,7 @@ export default function FavoritesPage() {
             <option value="new">発売日（新しい順）</option>
             <option value="old">発売日（古い順）</option>
           </select>
+
         </div>
       </header>
 
@@ -113,6 +115,7 @@ export default function FavoritesPage() {
             const title = clean(mAny.タイトル || mAny.雑誌名);
             const img = clean(mAny.表紙画像);
             const amazonUrl = clean(mAny.AmazonURL);
+            const kindleUrl = clean(mAny.電子版URL);
 
             return (
 
@@ -152,13 +155,14 @@ export default function FavoritesPage() {
                     </button>
 
                     {amazonUrl && (
-                      <a
-                        href={amazonUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={buyBtn}
-                      >
+                      <a href={amazonUrl} target="_blank" rel="noreferrer" style={buyBtn}>
                         Amazon
+                      </a>
+                    )}
+
+                    {kindleUrl && (
+                      <a href={kindleUrl} target="_blank" rel="noreferrer" style={kindleBtn}>
+                        Kindle
                       </a>
                     )}
 
@@ -217,7 +221,7 @@ const imgWrap: React.CSSProperties = {
 const imgStyle: React.CSSProperties = {
   width: "100%",
   height: "100%",
-  objectFit: "cover"
+  objectFit: "contain"
 };
 
 const infoArea: React.CSSProperties = {
@@ -254,6 +258,16 @@ const btnRow: React.CSSProperties = {
 const buyBtn: React.CSSProperties = {
   padding: "6px 12px",
   background: "#111",
+  color: "#fff",
+  borderRadius: 6,
+  fontSize: 11,
+  textDecoration: "none",
+  fontWeight: 900
+};
+
+const kindleBtn: React.CSSProperties = {
+  padding: "6px 12px",
+  background: "#ff9900",
   color: "#fff",
   borderRadius: 6,
   fontSize: 11,
