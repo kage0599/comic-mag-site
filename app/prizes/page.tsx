@@ -296,7 +296,7 @@ const magTag: React.CSSProperties = {
   borderRadius: 6,
   textDecoration: "none",
 
-  maxWidth: 300,
+  maxWidth: "70%",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
