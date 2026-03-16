@@ -3,39 +3,6 @@ import MagazineDetailClient from "./MagazineDetailClient";
 export const revalidate = 3600;
 
 /* ===========================
-  GASから全データ取得
-=========================== */
-async function getFullData() {
-  const gasUrl =
-    process.env.NEXT_PUBLIC_GAS_MAGAZINE_URL ||
-    process.env.NEXT_PUBLIC_GAS_URL;
-
-  if (!gasUrl) {
-    return { mags: [], prizes: [], services: [] };
-  }
-
-  try {
-    const res = await fetch(gasUrl, {
-      next: { revalidate: 3600 }
-    });
-
-    if (!res.ok) {
-      return { mags: [], prizes: [], services: [] };
-    }
-
-    const data = await res.json();
-
-    return {
-      mags: data.mags || [],
-      prizes: data.prizes || [],
-      services: data.services || []
-    };
-  } catch {
-    return { mags: [], prizes: [], services: [] };
-  }
-}
-
-/* ===========================
   SEO metadata
 =========================== */
 export async function generateMetadata({ params }: any) {
@@ -57,14 +24,8 @@ export async function generateMetadata({ params }: any) {
 /* ===========================
   Page
 =========================== */
-export default async function Page({ params }: any) {
-  const id = decodeURIComponent(params.magazine_id || "");
-  const data = await getFullData();
-
-  return (
-    <MagazineDetailClient
-      allData={data}
-      magazineId={id}
-    />
-  );
+export default function Page() {
+  // データの取得は MagazineDetailClient の中で行うようになったため、
+  // ここではコンポーネントを呼び出すだけでOKです！
+  return <MagazineDetailClient />;
 }

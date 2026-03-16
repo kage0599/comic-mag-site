@@ -6,6 +6,10 @@ import { useFavorites } from "../../../components/useFavorites";
 import A8Ad from "../../../components/A8Ad";
 import { clean, splitByComma } from "../../../components/text";
 
+import { useMagazines } from "../../../components/useMagazines";
+import { usePrizes } from "../../../components/usePrizes";
+import { useServices } from "../../../components/useServices";
+
 /* =============================
   表紙高画質化
 ============================= */
@@ -27,23 +31,19 @@ function getHighResCover(url?: string) {
 /* =============================
   メイン
 ============================= */
-export default function MagazineDetailClient({
-  allData,
-  magazineId
-}: {
-  allData: any
-  magazineId?: string
-}) {
+export default function MagazineDetailClient() {
   const params = useParams();
   const router = useRouter();
   const fav = useFavorites();
 
-  const rawId = magazineId || (params as any)?.magazine_id || "";
+  const rawId = (params as any)?.magazine_id || "";
   const id = clean(decodeURIComponent(rawId));
 
-  const mags = Array.isArray(allData) ? allData : (allData?.mags || []);
-  const prizes = allData?.prizes || [];
-  const services = allData?.services || [];
+  const { items: mags, loading: magLoad } = useMagazines();
+  const { items: prizes, loading: przLoad } = usePrizes();
+  const { items: services, loading: svcLoad } = useServices();
+
+  const loading = magLoad || przLoad || svcLoad;
 
   /* =============================
     雑誌取得
@@ -51,7 +51,8 @@ export default function MagazineDetailClient({
   const mag = useMemo(() => {
     return mags.find((m: any) => {
       const mid = clean(m.magazine_id);
-      const title = clean(m.タイトル || m.雑誌名);
+      // ★修正: m.雑誌名 を削除しました
+      const title = clean(m.タイトル);
 
       return (
         mid === id ||
@@ -67,7 +68,8 @@ export default function MagazineDetailClient({
   ============================= */
   const myPrizes = useMemo(() => {
     const magId = clean(mag?.magazine_id);
-    const magTitle = clean(mag?.タイトル || mag?.雑誌名);
+    // ★修正: mag?.雑誌名 を削除しました
+    const magTitle = clean(mag?.タイトル);
 
     return prizes.filter((p: any) => {
       const pid = clean(p.magazine_id);
@@ -87,7 +89,8 @@ export default function MagazineDetailClient({
   ============================= */
   const myServices = useMemo(() => {
     const magId = clean(mag?.magazine_id);
-    const magTitle = clean(mag?.タイトル || mag?.雑誌名);
+    // ★修正: mag?.雑誌名 を削除しました
+    const magTitle = clean(mag?.タイトル);
 
     return services.filter((s: any) => {
       const sid = clean(s.magazine_id);
@@ -102,12 +105,29 @@ export default function MagazineDetailClient({
     });
   }, [services, id, mag]);
 
-  const title = mag?.タイトル || mag?.雑誌名 || id;
+  // ★修正: mag?.雑誌名 を削除しました
+  const title = mag?.タイトル || id;
   const isFav = fav.has(title);
 
   /* =============================
     UI
   ============================= */
+
+  if (loading) {
+    return (
+      <main style={main}>
+        <div style={container}>
+          <header style={panel}>
+            <button onClick={() => router.back()} style={btnBack}>← 戻る</button>
+            <div style={{ padding: 40, textAlign: "center", fontWeight: 900 }}>
+              データを読み込み中...
+            </div>
+          </header>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main style={main}>
       <div style={container}>
@@ -151,6 +171,7 @@ export default function MagazineDetailClient({
                     Amazon
                   </a>
                 )}
+
                 {mag?.電子版URL && (
                   <a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnOrange}>
                     Kindle
@@ -177,23 +198,35 @@ export default function MagazineDetailClient({
 
         {/* 懸賞 */}
         <section style={section}>
-          <h2 style={h2}> {title}の懸賞情報</h2>
+          <h2 style={h2}>
+            🎁 {title}の懸賞情報
+          </h2>
+
           {myPrizes.length === 0 ? (
-            <div style={emptyBox}>現在掲載されている懸賞はありません</div>
+            <div style={emptyBox}>
+              現在掲載されている懸賞はありません
+            </div>
           ) : (
             <div style={grid}>
               {myPrizes.map((p: any, idx: number) => {
                 const lines = splitByComma(p.内容);
                 return (
                   <article key={idx} style={card}>
-                    <div style={prizeTitle}>{p.懸賞名 || "今月の懸賞"}</div>
+                    <div style={prizeTitle}>
+                      {p.懸賞名 || "今月の懸賞"}
+                    </div>
+
                     <div style={meta}>
-                      <span style={label}>締切：</span>{p.締切 || "—"}<br />
+                      <span style={label}>締切：</span>{p.締切 || "—"}
+                      <br />
                       <span style={label}>応募方法：</span>{p.応募方法 || "—"}
                     </div>
+
                     {lines.length > 0 && (
                       <details style={details}>
-                        <summary style={summary}>プレゼント内容を見る</summary>
+                        <summary style={summary}>
+                          プレゼント内容を見る
+                        </summary>
                         <ul style={prizeList}>
                           {lines.map((t: string, i: number) => (
                             <li key={i}>{t}</li>
@@ -201,6 +234,7 @@ export default function MagazineDetailClient({
                         </ul>
                       </details>
                     )}
+
                     {p.応募URL && (
                       <a href={p.応募URL} target="_blank" rel="noreferrer" style={btnApply}>
                         応募はこちら
@@ -215,16 +249,25 @@ export default function MagazineDetailClient({
 
         {/* 全プレ */}
         <section style={section}>
-          <h2 style={h2}> {title}の応募者全員サービス</h2>
+          <h2 style={h2}>
+            ✨ {title}の応募者全員サービス
+          </h2>
+
           {myServices.length === 0 ? (
-            <div style={emptyBox}>現在応募できる全員サービスはありません</div>
+            <div style={emptyBox}>
+              現在応募できる全員サービスはありません
+            </div>
           ) : (
             <div style={grid}>
               {myServices.map((s: any, idx: number) => (
                 <article key={idx} style={card}>
-                  <div style={prizeTitle}>{s.内容 || "応募者全員サービス"}</div>
+                  <div style={prizeTitle}>
+                    {s.内容 || "応募者全員サービス"}
+                  </div>
+
                   <div style={meta}>
-                    <span style={label}>締切：</span>{s.締切 || "—"}<br />
+                    <span style={label}>締切：</span>{s.締切 || "—"}
+                    <br />
                     <span style={label}>応募方法：</span>{s.応募方法 || "—"}
                   </div>
                 </article>
