@@ -294,7 +294,13 @@ const magTag: React.CSSProperties = {
   color: "#333",
   padding: "6px 10px",
   borderRadius: 6,
-  textDecoration: "none"
+  textDecoration: "none",
+
+  maxWidth: 180,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  display: "block"
 };
 const statusBtn: React.CSSProperties = {
   padding: "6px 12px",
