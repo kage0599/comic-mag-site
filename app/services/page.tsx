@@ -190,7 +190,7 @@ const card: React.CSSProperties = {
 };
 
 const magTag: React.CSSProperties = {
-  fontSize: 14,
+  fontSize: 12,
   fontWeight: 900,
   background: "#eef3f8",
   color: "#333",
