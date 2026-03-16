@@ -34,7 +34,10 @@ export default function ServicesPage() {
     if (sortMode === "deadline") {
       arr.sort((a, b) => (toDateNum(a.締切) || 9e15) - (toDateNum(b.締切) || 9e15));
     } else {
-      arr.sort((a, b) => (toDateNum(magById.get(clean(a.magazine_id))?.発売日) || 9e15) - (toDateNum(magById.get(clean(b.magazine_id))?.発売日) || 9e15));
+      arr.sort((a, b) =>
+        (toDateNum(magById.get(clean(a.magazine_id))?.発売日) || 9e15) -
+        (toDateNum(magById.get(clean(b.magazine_id))?.発売日) || 9e15)
+      );
     }
     return arr;
   }, [items, showExpired, now, sortMode, magById]);
@@ -42,19 +45,20 @@ export default function ServicesPage() {
   return (
     <main style={{ minHeight: "100vh", background: "#f6f7fb", paddingBottom: 60 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px" }}>
-        
+
         <header style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             <div>
-              {/* ✅ 大見出し修正 */}
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>応募者全員サービス一覧</h1>
               <div style={{ marginTop: 6, fontSize: 13, color: "#555", fontWeight: 900 }}>件数：{list.length} 件</div>
             </div>
+
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <select value={sortMode} onChange={(e) => setSortMode(e.target.value as any)} style={select}>
                 <option value="deadline">締切が近い順</option>
                 <option value="release">発売日順</option>
               </select>
+
               <button onClick={() => setShowExpired(!showExpired)} style={btnSoft}>
                 {showExpired ? "期間外を隠す" : "期間外も表示"}
               </button>
@@ -68,40 +72,58 @@ export default function ServicesPage() {
 
         <section style={{ marginTop: 16 }}>
           {loading ? <div style={{ padding: 18 }}>読み込み中...</div> : (
+
             <div className="responsiveGrid">
+
               {list.map((s, idx) => {
+
                 const mag = magById.get(clean(s.magazine_id));
                 const magTitle = clean(mag?.タイトル) || clean(s.magazine_id);
                 const lines = splitByComma(s.内容);
 
                 return (
                   <article key={idx} style={card}>
-                    {/* ✅ 大きめの雑誌名ボタン */}
-                    <div style={{ marginBottom: 12 }}>
-                      <Link href={`/magazine/${encodeURIComponent(clean(mag?.magazine_id || magTitle))}`} style={magTag}>
-                        {magTitle}
-                      </Link>
-                    </div>
+
+                    <Link
+                      href={`/magazine/${encodeURIComponent(clean(mag?.magazine_id || magTitle))}`}
+                      style={magTag}
+                    >
+                      {magTitle}
+                    </Link>
 
                     <div style={infoArea}>
                       {mag?.発売日 && <div><span style={label}>発売日：</span>{ymd(mag.発売日)}</div>}
-                      <div><span style={label}>締　切：</span>{clean(s.締切) || "—"}</div>
-                      {/* ✅ 方法を応募方法に修正 */}
+                      <div><span style={label}>締切：</span>{clean(s.締切) || "—"}</div>
                       <div><span style={label}>応募方法：</span>{clean(s.応募方法) || "—"}</div>
                     </div>
 
-                    {/* ✅ プレゼント内容を常時表示 */}
-                    <div style={contentBox}>
-                      <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 6, color: "#111" }}>プレゼント内容</div>
+                    {/* プレゼント内容（タップで開く） */}
+                    <details style={contentBox}>
+                      <summary style={summary}>プレゼント内容を見る</summary>
+
                       <ul style={prizeList}>
-                        {lines.map((t, i) => <li key={i}>{t}</li>)}
+                        {lines.map((t, i) => (
+                          <li key={i}>{t}</li>
+                        ))}
                       </ul>
-                    </div>
+                    </details>
 
                     <div style={buyRow}>
-                      {mag?.AmazonURL && <a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnMiniDark}>Amazon</a>}
-                      {mag?.電子版URL && <a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnMiniBlue}>電子版</a>}
+
+                      {mag?.AmazonURL && (
+                        <a href={mag.AmazonURL} target="_blank" rel="noreferrer" style={btnMiniDark}>
+                          Amazon
+                        </a>
+                      )}
+
+                      {mag?.電子版URL && (
+                        <a href={mag.電子版URL} target="_blank" rel="noreferrer" style={btnMiniOrange}>
+                          Kindle
+                        </a>
+                      )}
+
                     </div>
+
                   </article>
                 );
               })}
@@ -111,22 +133,148 @@ export default function ServicesPage() {
       </div>
 
       <style jsx>{`
-        .responsiveGrid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 768px) { .responsiveGrid { grid-template-columns: 1fr 1fr; gap: 20px; } }
+        .responsiveGrid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+          .responsiveGrid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
       `}</style>
     </main>
   );
 }
 
-const panel: React.CSSProperties = { background: "white", borderRadius: 16, padding: 20, boxShadow: "0 4px 15px rgba(0,0,0,0.05)", border: "1px solid #eee" };
-const select: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", fontWeight: 900, fontSize: 13 };
-const btnSoft: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", fontWeight: 900, fontSize: 13, cursor: "pointer" };
-const card: React.CSSProperties = { background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #eee", boxShadow: "0 4px 15px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", height: "100%" };
-const magTag: React.CSSProperties = { fontSize: 14, fontWeight: 900, color: "#111", background: "#f0f4f8", padding: "6px 14px", borderRadius: 8, textDecoration: "none", border: "1px solid #dce6f2", display: "inline-block" };
-const infoArea: React.CSSProperties = { fontSize: 14, color: "#333", display: "grid", gap: 6 };
-const label: React.CSSProperties = { fontWeight: 900, color: "#777", display: "inline-block", width: 70 };
-const contentBox: React.CSSProperties = { marginTop: 16, background: "#f9f9f9", padding: 14, borderRadius: 10, border: "1px solid #eee" };
-const prizeList: React.CSSProperties = { margin: 0, paddingLeft: 20, fontSize: 15, lineHeight: 1.6, color: "#111", fontWeight: 900 };
-const buyRow: React.CSSProperties = { marginTop: "auto", display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 16 };
-const btnMiniDark: React.CSSProperties = { padding: "8px 16px", borderRadius: 8, background: "#111", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 900 };
-const btnMiniBlue: React.CSSProperties = { padding: "8px 16px", borderRadius: 8, background: "#2b6cff", color: "#fff", textDecoration: "none", fontSize: 12, fontWeight: 900 };
+/* UI */
+
+const panel: React.CSSProperties = {
+  background: "white",
+  borderRadius: 16,
+  padding: 20,
+  boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
+  border: "1px solid #eee"
+};
+
+const select: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: 8,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontWeight: 900,
+  fontSize: 13
+};
+
+const btnSoft: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: 8,
+  border: "1px solid #ddd",
+  background: "#fff",
+  fontWeight: 900,
+  fontSize: 13,
+  cursor: "pointer"
+};
+
+const card: React.CSSProperties = {
+  background: "#fff",
+  borderRadius: 18,
+  padding: 24,
+  border: "2px solid #edf1f7",
+  boxShadow: "0 8px 22px rgba(0,0,0,0.06)",
+  display: "flex",
+  flexDirection: "column",
+  gap: 14
+};
+
+const magTag: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 900,
+  background: "#eef3f8",
+  color: "#333",
+  padding: "6px 10px",
+  borderRadius: 6,
+  textDecoration: "none",
+  maxWidth: "70%",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  display: "block"
+};
+
+const infoArea: React.CSSProperties = {
+  fontSize: 14,
+  color: "#333",
+  display: "grid",
+  gap: 6
+};
+
+const label: React.CSSProperties = {
+  fontWeight: 900,
+  color: "#777",
+  display: "inline-block",
+  width: 70
+};
+
+const contentBox: React.CSSProperties = {
+  marginTop: 10,
+  background: "#f9f9f9",
+  padding: 14,
+  borderRadius: 10,
+  border: "1px solid #eee"
+};
+
+const summary: React.CSSProperties = {
+  fontWeight: 900,
+  cursor: "pointer"
+};
+
+const prizeList: React.CSSProperties = {
+  marginTop: 10,
+  paddingLeft: 20,
+  fontSize: 15,
+  lineHeight: 1.6,
+  fontWeight: 900
+};
+
+const applyBtn: React.CSSProperties = {
+  textAlign: "center",
+  background: "linear-gradient(135deg,#ff4d4f,#ff7a45)",
+  color: "#fff",
+  padding: "12px",
+  borderRadius: 10,
+  fontWeight: 900,
+  fontSize: 14,
+  textDecoration: "none",
+  marginTop: 6
+};
+
+const buyRow: React.CSSProperties = {
+  marginTop: "auto",
+  display: "flex",
+  gap: 8,
+  justifyContent: "flex-end",
+  flexWrap: "wrap"
+};
+
+const btnMiniDark: React.CSSProperties = {
+  padding: "8px 16px",
+  borderRadius: 8,
+  background: "#111",
+  color: "#fff",
+  textDecoration: "none",
+  fontSize: 12,
+  fontWeight: 900
+};
+
+const btnMiniOrange: React.CSSProperties = {
+  padding: "8px 16px",
+  borderRadius: 8,
+  background: "#ff9900",
+  color: "#fff",
+  textDecoration: "none",
+  fontSize: 12,
+  fontWeight: 900
+};
