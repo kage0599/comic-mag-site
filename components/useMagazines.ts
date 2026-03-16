@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type Magazine = {
   magazine_id?: string;
@@ -13,7 +13,7 @@ export type Magazine = {
   R18?: string | boolean | number;
 };
 
-const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL; // ✅これに統一
+const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL;
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const CACHE_VERSION = "v2";
@@ -33,19 +33,14 @@ function makeCacheKey(gasUrl: string) {
 }
 
 export function useMagazines(options?: { forceRefresh?: boolean }) {
-  const resolvedGasUrl = GAS_URL || ""; // undefined対策（エラー表示に回す）
+  const resolvedGasUrl = GAS_URL || "";
   const cacheKey = useMemo(() => makeCacheKey(resolvedGasUrl || "missing_gas_url"), [resolvedGasUrl]);
 
   const [items, setItems] = useState<Magazine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchedOnceRef = useRef(false);
-
   useEffect(() => {
-    if (fetchedOnceRef.current) return;
-    fetchedOnceRef.current = true;
-
     if (!resolvedGasUrl) {
       setLoading(false);
       setError("GAS URL が未設定です（NEXT_PUBLIC_GAS_URL を環境変数に設定してください）");
@@ -65,7 +60,9 @@ export function useMagazines(options?: { forceRefresh?: boolean }) {
           cacheUsed = true;
 
           const freshEnough = Date.now() - payload.savedAt < CACHE_TTL_MS;
-          if (freshEnough && !options?.forceRefresh) setLoading(false);
+          if (freshEnough && !options?.forceRefresh) {
+            setLoading(false);
+          }
         }
       }
     } catch {}
@@ -76,7 +73,9 @@ export function useMagazines(options?: { forceRefresh?: boolean }) {
         const raw = sessionStorage.getItem(cacheKey) || localStorage.getItem(cacheKey);
         const payload = raw ? safeJsonParse<CachePayload>(raw) : null;
         const freshEnough = payload ? Date.now() - payload.savedAt < CACHE_TTL_MS : false;
-        if (freshEnough) return () => controller.abort();
+        if (freshEnough) {
+          return () => controller.abort();
+        }
       } catch {}
     }
 
@@ -105,7 +104,7 @@ export function useMagazines(options?: { forceRefresh?: boolean }) {
             } catch {}
           }
         }
-      } catch {
+      } catch (err) {
         if (controller.signal.aborted) return;
         setError("データ取得に失敗しました（GAS デプロイ/権限/URL を確認）");
       } finally {
