@@ -117,9 +117,9 @@ export default function FavoritesPage() {
             const amazonUrl = clean(mAny.AmazonURL);
             const kindleUrl = clean(mAny.電子版URL);
             
-            // ★ R18判定
-            const isR18 = String(mAny.R18).toUpperCase() === "TRUE";
-            // ★ 詳細ページURL
+            // R18判定
+            const isR18 = String(mAny.R18).toUpperCase() === "TRUE" || clean(mAny.R18) === "1";
+            // 詳細ページURL
             const detailUrl = `/magazine/${encodeURIComponent(mAny.magazine_id || title)}`;
 
             return (
@@ -135,19 +135,18 @@ export default function FavoritesPage() {
                     <img
                       src={getHighRes(img)}
                       alt={title}
-                      // ★ R18ならぼかし(blur)を入れる
+                      // ★ トップページと同じblur(15px)に統一
                       style={{
                         ...imgStyle,
-                        filter: isR18 ? "blur(10px)" : "none",
-                        transform: isR18 ? "scale(1.1)" : "none" // ぼかしの端が見えないように少し拡大
+                        filter: isR18 ? "blur(15px)" : "none",
                       }}
                       loading="lazy"
                     />
                   </div>
                   
-                  {/* R18ラベル（任意） */}
+                  {/* ★ トップページと同じ半透明のR18タグに統一 */}
                   {isR18 && (
-                    <span style={r18Badge}>R18</span>
+                    <div style={r18Tag}>R18</div>
                   )}
 
                 </Link>
@@ -162,7 +161,6 @@ export default function FavoritesPage() {
                     {clean(mAny.発売日)} / {clean(mAny.値段)}
                   </div>
 
-                  {/* ★ ボタンエリア（折り返し設定を追加） */}
                   <div style={btnRow}>
 
                     <button
@@ -184,7 +182,7 @@ export default function FavoritesPage() {
                       </a>
                     )}
 
-                    {/* ★ 懸賞情報はこちらボタンを追加 */}
+                    {/* ★ トップページと同じ黄色系のボタンに統一 */}
                     <Link href={detailUrl} style={prizeBtn}>
                       懸賞情報はこちら
                     </Link>
@@ -247,17 +245,18 @@ const imgStyle: React.CSSProperties = {
   objectFit: "contain"
 };
 
-const r18Badge: React.CSSProperties = {
+// ★ トップページと同じR18カバースタイルを追加
+const r18Tag: React.CSSProperties = {
   position: "absolute",
-  top: 4,
-  left: 4,
-  background: "#ff4d4f",
+  inset: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   color: "#fff",
-  fontSize: 10,
   fontWeight: 900,
-  padding: "2px 6px",
-  borderRadius: 4,
-  zIndex: 1
+  background: "rgba(0,0,0,0.4)",
+  borderRadius: 8,
+  pointerEvents: "none"
 };
 
 const infoArea: React.CSSProperties = {
@@ -289,7 +288,7 @@ const btnRow: React.CSSProperties = {
   gap: 8,
   marginTop: 10,
   alignItems: "center",
-  flexWrap: "wrap" // ★ ボタンが多い時にスマホで折り返すように設定
+  flexWrap: "wrap"
 };
 
 const buyBtn: React.CSSProperties = {
@@ -312,15 +311,16 @@ const kindleBtn: React.CSSProperties = {
   fontWeight: 900
 };
 
-// ★ 新しいボタンのスタイル
+// ★ トップページと同じ黄色背景・濃いグレー文字に変更
 const prizeBtn: React.CSSProperties = {
   padding: "6px 12px",
-  background: "#ff4d4f", // 目立つように赤色にしています
-  color: "#fff",
+  background: "#fff4ce",
+  color: "#333",
   borderRadius: 6,
   fontSize: 11,
   textDecoration: "none",
-  fontWeight: 900
+  fontWeight: 900,
+  textAlign: "center"
 };
 
 const starBtn: React.CSSProperties = {
