@@ -161,6 +161,15 @@ export default function HomeClient({ initialItems = [] }: { initialItems: Item[]
         </div>
       </header>
 
+      {/* 広告②：ヘッダー（検索パネル）のすぐ下（順番を上に移動しました） */}
+      <div style={{ marginTop: 24 }}>
+        <A8Ad htmlContent={`
+          <a href="https://px.a8.net/svt/ejp?a8mat=4AZOWQ+10BI82+13X8+61RI9" rel="nofollow">
+          <img border="0" width="468" height="60" alt="" src="https://www23.a8.net/svt/bgt?aid=260326106061&wid=003&eno=01&mid=s00000005174001016000&mc=1"></a>
+          <img border="0" width="1" height="1" src="https://www12.a8.net/0.gif?a8mat=4AZOWQ+10BI82+13X8+61RI9" alt="">
+        `} />
+      </div>
+
       <section style={{ marginTop: 24 }}>
         {grouped.map(([date, items]) => (
           <div key={date} style={{ marginBottom: 40 }}>
@@ -203,6 +212,11 @@ export default function HomeClient({ initialItems = [] }: { initialItems: Item[]
           </div>
         ))}
       </section>
+
+      {/* 広告①：リストの一番下（順番を下に移動しました） */}
+      <div style={{ marginTop: 40, marginBottom: 20 }}>
+        <A8Ad htmlContent={`<a href="https://px.a8.net/svt/ejp?a8mat=4AZGCD+9TNIVU+4AHY+5Z6WX" rel="nofollow"><img border="0" width="468" height="60" src="https://www29.a8.net/svt/bgt?aid=260315005594&wid=002&eno=01&mid=s00000020023001004000&mc=1"></a>`} />
+      </div>
 
       <style jsx>{`
         .filterArea {

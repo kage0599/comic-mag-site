@@ -132,7 +132,6 @@ export default function MagazineDetailClient() {
             ← 戻る
           </button>
 
-          {/* ★修正: クラスを使ってレスポンシブなレイアウトに変更 */}
           <div className="topArea">
             <div className="coverWrap">
               {mag?.表紙画像 ? (
@@ -187,7 +186,7 @@ export default function MagazineDetailClient() {
           </p>
         </section>
 
-        {/* 広告 */}
+        {/* 広告①：元々設置されていた広告 */}
         <div style={{ marginTop: 20 }}>
           <A8Ad htmlContent={`<a href="https://px.a8.net/svt/ejp?a8mat=4AZGCD+9TNIVU+4AHY+5Z6WX" rel="nofollow"><img border="0" width="468" height="60" src="https://www29.a8.net/svt/bgt?aid=260315005594&wid=002&eno=01&mid=s00000020023001004000&mc=1"></a>`} />
         </div>
@@ -271,9 +270,19 @@ export default function MagazineDetailClient() {
             </div>
           )}
         </section>
+
+        {/* 広告②：今回追加いただいた新しい広告（1px画像込み） */}
+        <div style={{ marginTop: 40, marginBottom: 20 }}>
+          <A8Ad htmlContent={`
+            <a href="https://px.a8.net/svt/ejp?a8mat=4AZOWQ+10BI82+13X8+61RI9" rel="nofollow">
+            <img border="0" width="468" height="60" alt="" src="https://www23.a8.net/svt/bgt?aid=260326106061&wid=003&eno=01&mid=s00000005174001016000&mc=1"></a>
+            <img border="0" width="1" height="1" src="https://www12.a8.net/0.gif?a8mat=4AZOWQ+10BI82+13X8+61RI9" alt="">
+          `} />
+        </div>
+
       </div>
 
-      {/* ★ スマホとPCで見た目を切り替えるCSS */}
+      {/* スマホとPCで見た目を切り替えるCSS */}
       <style jsx>{`
         .topArea {
           display: flex;
@@ -281,7 +290,7 @@ export default function MagazineDetailClient() {
           margin-top: 16px;
         }
         .coverWrap {
-          width: 110px; /* スマホでは表紙画像を少し小さくして右側のスペースを確保 */
+          width: 110px;
           flex-shrink: 0;
         }
         .coverImage {
@@ -308,7 +317,7 @@ export default function MagazineDetailClient() {
         }
         .magTitle {
           margin: 0;
-          font-size: 18px; /* スマホで読みやすいサイズに */
+          font-size: 18px;
           font-weight: 900;
           line-height: 1.4;
         }
@@ -318,7 +327,7 @@ export default function MagazineDetailClient() {
           margin-top: 16px;
         }
         .buyBtn {
-          flex: 1; /* 横並びで均等に広げる */
+          flex: 1;
           text-align: center;
           padding: 10px 4px;
           border-radius: 8px;
@@ -334,7 +343,6 @@ export default function MagazineDetailClient() {
           background: #ff9900;
         }
 
-        /* PCやタブレットなどの大きな画面の時のスタイル */
         @media (min-width: 640px) {
           .topArea {
             gap: 24px;
@@ -349,7 +357,7 @@ export default function MagazineDetailClient() {
             font-size: 24px;
           }
           .buyBtn {
-            flex: none; /* PCでは幅を広げすぎない */
+            flex: none;
             padding: 12px 24px;
             font-size: 14px;
           }
@@ -360,7 +368,7 @@ export default function MagazineDetailClient() {
 }
 
 /* =============================
-  STYLE (固定のものはそのまま残す)
+  STYLE
 ============================= */
 const main: React.CSSProperties = { minHeight: "100vh", background: "#f6f7fb" };
 const container: React.CSSProperties = { maxWidth: 1100, margin: "0 auto", padding: 16 };
@@ -390,7 +398,7 @@ function starBtn(active: boolean): React.CSSProperties {
     color: active ? "#fff" : "#111",
     cursor: "pointer",
     fontSize: 18,
-    flexShrink: 0, /* タイトルが長くなってもボタンを潰さない */
+    flexShrink: 0,
     display: "flex",
     alignItems: "center",
     justifyContent: "center"
